@@ -1,0 +1,35 @@
+Create a complete budget tracking app with the following features:
+
+1. CORE FEATURES:
+   - Track current budget and expenses in real-time
+   - Upload receipt images (screenshot or photo)
+   - OCR to extract amount from receipts
+   - Auto-categorize expenses (Groceries, Shopping, Utilities, etc.)
+   - Update budget amounts by category
+   - Show remaining budget
+
+2. TECH STACK:
+   - React with TypeScript
+   - Tesseract.js for OCR (client-side receipt scanning)
+   - LocalStorage for data persistence (can upgrade to database later)
+   - Tailwind CSS for styling
+
+3. CATEGORIES:
+   - Groceries (Walmart food, Kroger, etc.)
+   - Shopping (Amazon, retail, clothing)
+   - Utilities (electricity, water, internet)
+   - Transportation (gas, uber, maintenance)
+   - Entertainment (movies, dining out)
+   - Miscellaneous (everything else)
+
+4. FEATURES NEEDED:
+   - Dashboard showing budget overview
+   - Add expense manually
+   - Upload receipt image
+   - OCR processing with amount extraction
+   - Smart categorization based on store name
+   - Edit/delete transactions
+   - Monthly budget reset
+   - Export data as CSV
+
+Please create the complete application with all components, OCR integration, and a clean UI.

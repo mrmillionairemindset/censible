@@ -1,0 +1,27 @@
+Create a complete budget tracking React TypeScript app with these features:
+
+1. Receipt Upload & OCR:
+   - Drag-and-drop or click to upload receipt images
+   - Use Tesseract.js to extract text
+   - Parse amount and merchant name
+   - Display extracted data for confirmation
+
+2. Smart Categorization:
+   - Auto-categorize: Walmart→Groceries, Amazon→Shopping, etc.
+   - Categories: Groceries, Shopping, Utilities, Transportation, Entertainment, Miscellaneous
+   - Allow manual override
+
+3. Budget Dashboard:
+   - Set monthly budgets per category
+   - Visual progress bars (green/yellow/red)
+   - Show spent vs remaining
+   - Total budget overview
+
+4. Data Management:
+   - LocalStorage persistence
+   - Add/Edit/Delete transactions
+   - Export to CSV
+
+Tech Stack: React, TypeScript, Tesseract.js, Tailwind CSS, Recharts
+
+Create all components, hooks, and utilities for a complete working app.

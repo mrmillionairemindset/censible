@@ -1,0 +1,94 @@
+Create a budget tracking app called "Centsible" - a smart expense tracker that makes managing money sensible and simple.
+
+## App Name: Centsible
+Tagline: "Smart budget tracking that makes cents!"
+
+## Core Features:
+
+1. **Receipt Scanner (CentScan™)**
+   - Upload receipt photos via drag-and-drop or click
+   - Use Tesseract.js for OCR to extract amounts
+   - Parse merchant names and dates
+   - Show scanning progress with animated loader
+
+2. **Smart Categorization (CentSort™)**
+   - Auto-categorize expenses:
+     * Walmart, Kroger, Target → Groceries
+     * Amazon, Best Buy → Shopping
+     * Shell, Chevron → Transportation
+     * Netflix, Spotify → Entertainment
+     * Electric, Water → Utilities
+   - Learn from user corrections
+
+3. **Budget Dashboard (CentView™)**
+   - Monthly budget overview with remaining balance
+   - Category cards with progress rings (not bars)
+   - Color coding: Green (0-60%), Yellow (60-85%), Red (85%+)
+   - Daily spending average
+   - Days left in budget period
+
+4. **Transaction Management (CentLog™)**
+   - List view with search and filters
+   - Quick add expense button
+   - Edit/delete with swipe gestures (mobile)
+   - Receipt image preview
+   - Export to CSV
+
+5. **Insights (CentWise™)**
+   - Spending trends chart
+   - Category breakdown pie chart
+   - "You're on track!" or warning messages
+   - Savings opportunities
+
+## Design Requirements:
+- Color scheme: 
+  * Primary: Mint green (#10B981)
+  * Secondary: Dark slate (#1E293B)
+  * Accent: Gold (#F59E0B) for savings
+  * Background: Clean white (#FFFFFF)
+- Logo: Coin with a checkmark
+- Font: Inter for UI, Poppins for headings
+- Mobile-first responsive design
+- Smooth animations and micro-interactions
+
+## Technical Implementation:
+- React 18 with TypeScript
+- Tesseract.js for OCR
+- Tailwind CSS for styling
+- Recharts for visualizations
+- LocalStorage with encryption for data
+- PWA-ready for mobile installation
+
+## Component Structure:
+```
+src/
+  components/
+    CentsibleLogo.tsx
+    Dashboard/
+      BudgetOverview.tsx
+      CategoryCard.tsx
+      QuickStats.tsx
+    Scanner/
+      ReceiptUploader.tsx
+      OCRProcessor.tsx
+      AmountConfirm.tsx
+    Transactions/
+      TransactionList.tsx
+      TransactionItem.tsx
+      AddExpenseModal.tsx
+    Insights/
+      SpendingChart.tsx
+      CategoryBreakdown.tsx
+  hooks/
+    useCentsible.ts
+    useOCR.ts
+    useBudget.ts
+  utils/
+    centSort.ts (categorization)
+    centScan.ts (OCR processing)
+    storage.ts (encrypted LocalStorage)
+  theme/
+    centsible-theme.ts
+```
+
+Create the complete Centsible app with all features, focusing on a clean, intuitive UI that makes budget tracking feel effortless. Include the tagline "Smart budget tracking that makes cents!" in the header.
