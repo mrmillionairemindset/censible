@@ -56,10 +56,9 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
       whileHover={{ y: -2, boxShadow: '0px 8px 16px rgba(0, 0, 0, 0.1)' }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className={`relative p-4 rounded-2xl border-2 transition-all duration-200 cursor-pointer ${getStatusColor()} ${
+      className={`relative p-4 rounded-2xl border-2 transition-all duration-200 cursor-pointer min-h-[200px] flex flex-col justify-between ${getStatusColor()} ${
         isSelected ? 'ring-2 ring-mint-500 ring-offset-2' : ''
       }`}
-      style={{ minHeight: '180px' }}
     >
       {/* Status Badge */}
       {percentage >= 90 && (
@@ -77,7 +76,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
       )}
 
       {/* Vertical Layout: Ring on Top, Details Below */}
-      <div className="flex flex-col items-center h-full">
+      <div className="flex flex-col items-center flex-1">
         {/* Top: Budget Ring Container */}
         <div className="flex flex-col items-center mb-4">
           <div className="w-[120px] h-[120px] flex items-center justify-center">
@@ -108,19 +107,13 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
 
           {/* Spending Info */}
           <div className="space-y-1">
-            <div className="text-sm text-gray-600">
-              <div className="mb-1">Spent: <span className="font-semibold">${spent.toFixed(0)}</span></div>
-              <div className={`font-medium ${isOverBudget ? 'text-red-600' : 'text-gray-700'}`}>
-                {isOverBudget ? `$${Math.abs(remaining).toFixed(0)} over` : `$${remaining.toFixed(0)} left`}
-              </div>
-            </div>
-
-            {/* Daily Budget - smaller text */}
-            {!isOverBudget && dailyBudget > 0 && (
-              <p className="text-xs text-gray-500 mt-1">
-                ${dailyBudget.toFixed(0)}/day remaining
-              </p>
-            )}
+            <p className="text-sm text-gray-600">Spent: <span className="font-semibold">${spent.toFixed(0)}</span></p>
+            <p className={`text-sm font-medium ${isOverBudget ? 'text-red-600' : 'text-gray-700'}`}>
+              {isOverBudget ? `$${Math.abs(remaining).toFixed(0)} over` : `$${remaining.toFixed(0)} left`}
+            </p>
+            <p className="text-xs text-gray-500">
+              ${Math.max(0, dailyBudget).toFixed(0)}/day remaining
+            </p>
           </div>
         </div>
       </div>
