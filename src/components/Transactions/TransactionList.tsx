@@ -110,7 +110,7 @@ const TransactionList: React.FC = () => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="bg-white rounded-2xl shadow-soft p-6"
+      className="bg-white rounded-2xl shadow-soft p-6 w-full h-full"
     >
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
@@ -209,7 +209,7 @@ const TransactionList: React.FC = () => {
         variants={staggerContainer}
         initial="initial"
         animate="animate"
-        className="space-y-4 max-h-96 overflow-y-auto pr-2 custom-scrollbar"
+        className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar"
       >
         {Object.entries(groupedTransactions).map(([group, transactions]) => (
           <motion.div key={group} variants={staggerItem}>

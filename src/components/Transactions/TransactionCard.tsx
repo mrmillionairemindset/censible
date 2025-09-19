@@ -102,35 +102,35 @@ const TransactionCard: React.FC<TransactionCardProps> = ({ transaction, onEdit, 
             whileTap={{ scale: 0.98 }}
             className="relative bg-white rounded-xl shadow-soft p-4 cursor-grab active:cursor-grabbing"
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between w-full">
               {/* Left Side - Category & Details */}
-              <div className="flex items-center gap-3 flex-1">
-                <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-xl">
+              <div className="flex items-center gap-4 flex-1 min-w-0">
+                <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center text-xl flex-shrink-0">
                   {CategoryIcons[transaction.category]}
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-semibold text-gray-800">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-1">
+                    <h4 className="font-semibold text-gray-800 truncate">
                       {transaction.merchant || transaction.description}
                     </h4>
                     {transaction.receiptImage && (
-                      <div className="w-4 h-4 rounded bg-mint-100 flex items-center justify-center">
+                      <div className="w-5 h-5 rounded bg-mint-100 flex items-center justify-center flex-shrink-0">
                         <span className="text-xs">📷</span>
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center gap-3 mt-1">
-                    <span className="text-xs text-gray-500 flex items-center gap-1">
-                      <Calendar size={10} />
-                      {format(new Date(transaction.date), 'MMM d')}
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="text-sm text-gray-500 flex items-center gap-1 whitespace-nowrap">
+                      <Calendar size={12} />
+                      {format(new Date(transaction.date), 'MMM d, yyyy')}
                     </span>
                     {transaction.merchant && transaction.merchant !== transaction.description && (
-                      <span className="text-xs text-gray-500 flex items-center gap-1">
-                        <Store size={10} />
+                      <span className="text-sm text-gray-500 flex items-center gap-1 truncate">
+                        <Store size={12} />
                         {transaction.description}
                       </span>
                     )}
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                    <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600 whitespace-nowrap">
                       {CategoryLabels[transaction.category]}
                     </span>
                   </div>
@@ -138,14 +138,17 @@ const TransactionCard: React.FC<TransactionCardProps> = ({ transaction, onEdit, 
               </div>
 
               {/* Right Side - Amount */}
-              <div className="text-right">
+              <div className="text-right flex-shrink-0 ml-4">
                 <motion.p
-                  className="text-lg font-bold text-gray-900"
+                  className="text-xl font-bold text-gray-900"
                   initial={{ scale: 1 }}
                   whileHover={{ scale: 1.05 }}
                 >
                   ${transaction.amount.toFixed(2)}
                 </motion.p>
+                <p className="text-sm text-gray-500">
+                  {format(new Date(transaction.date), 'h:mm a')}
+                </p>
               </div>
             </div>
 

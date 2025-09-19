@@ -141,7 +141,7 @@ const Dashboard: React.FC = () => {
           </div>
         </motion.div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-5 gap-8">
           {/* Categories Grid */}
           <div className="xl:col-span-3">
             <motion.div
@@ -183,8 +183,8 @@ const Dashboard: React.FC = () => {
             </motion.div>
           </div>
 
-          {/* Right Column - Transaction List */}
-          <div className="xl:col-span-1">
+          {/* Right Column - Transaction List (Wider) */}
+          <div className="xl:col-span-2">
             <TransactionList />
           </div>
         </div>
