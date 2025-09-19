@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useBudget } from '../../contexts/BudgetContext';
 import { CategoryType, CategoryLabels } from '../../types';
@@ -13,11 +13,20 @@ interface ChartData {
   percentage: number;
 }
 
+interface ActiveCategory {
+  name: string;
+  budget: number;
+  spent: number;
+  percentage: number;
+  color: string;
+}
+
 const SpendingDonutChart: React.FC = () => {
   const { budget, setCategoryFilter, getRemainingBudget, getTotalSpent } = useBudget();
   const [selectedSegment, setSelectedSegment] = useState<CategoryType | null>(null);
   const [hoveredSegment, setHoveredSegment] = useState<CategoryType | null>(null);
   const [animatedData, setAnimatedData] = useState<ChartData[]>([]);
+  const [activeCategory, setActiveCategory] = useState<ActiveCategory | null>(null);
 
   const remaining = getRemainingBudget();
   const totalSpent = getTotalSpent();
@@ -39,61 +48,29 @@ const SpendingDonutChart: React.FC = () => {
   const handleSegmentClick = (entry: ChartData) => {
     if (entry.name === 'Available') return;
 
+    const categoryData = budget.categories.find(c => c.category === entry.category);
+    if (categoryData) {
+      const spentPercentage = categoryData.allocated > 0 ? (categoryData.spent / categoryData.allocated) * 100 : 0;
+      setActiveCategory({
+        name: entry.name,
+        budget: categoryData.allocated,
+        spent: categoryData.spent,
+        percentage: spentPercentage,
+        color: entry.color
+      });
+    }
+
     const newCategory = selectedSegment === entry.category ? null : entry.category;
     setSelectedSegment(newCategory);
     setCategoryFilter(newCategory || undefined);
   };
 
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload[0]) {
-      const data = payload[0].payload;
-      const categoryData = budget.categories.find(c => c.category === data.category);
-      const spent = categoryData?.spent || 0;
-      const allocated = data.value;
-      const spentPercentage = allocated > 0 ? (spent / allocated) * 100 : 0;
-      const remaining = allocated - spent;
-
-      return (
-        <div className="bg-white p-3 rounded-lg shadow-xl border border-gray-200 z-50">
-          <p className="font-semibold text-gray-800 mb-2">{data.name}</p>
-          <div className="space-y-1 text-sm">
-            <div className="flex justify-between gap-4">
-              <span className="text-gray-600">Budget:</span>
-              <span className="font-semibold text-gray-800">${allocated.toFixed(0)}</span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-gray-600">Spent:</span>
-              <span className="font-semibold text-gray-800">${spent.toFixed(0)}</span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-gray-600">Remaining:</span>
-              <span className={`font-semibold ${remaining >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                ${Math.abs(remaining).toFixed(0)}
-              </span>
-            </div>
-            <div className="pt-1 mt-1 border-t border-gray-100">
-              <div className="flex items-center gap-2">
-                <div className="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
-                  <div
-                    className={`h-full transition-all ${
-                      spentPercentage >= 100 ? 'bg-red-500' :
-                      spentPercentage >= 75 ? 'bg-amber-500' :
-                      'bg-green-500'
-                    }`}
-                    style={{ width: `${Math.min(spentPercentage, 100)}%` }}
-                  />
-                </div>
-                <span className="text-xs font-medium text-gray-600">
-                  {spentPercentage.toFixed(0)}%
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-    return null;
+  const getProgressColor = (percentage: number) => {
+    if (percentage >= 100) return '#EF4444'; // Red for over budget
+    if (percentage >= 70) return '#F59E0B';  // Amber for warning
+    return '#10B981'; // Green for good
   };
+
 
   const renderCenterLabel = () => {
     // Keep center label static - don't change on hover
@@ -176,14 +153,100 @@ const SpendingDonutChart: React.FC = () => {
                 />
               ))}
             </Pie>
-            <Tooltip
-              content={<CustomTooltip />}
-              cursor={false}
-              wrapperStyle={{ zIndex: 1000 }}
-            />
           </PieChart>
         </ResponsiveContainer>
         {renderCenterLabel()}
+
+        {/* Animated Tooltip Overlay */}
+        <AnimatePresence>
+          {activeCategory && (
+            <>
+              {/* Backdrop for outside clicks */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-10 bg-black bg-opacity-20"
+                onClick={() => setActiveCategory(null)}
+              />
+
+              {/* Tooltip */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.85 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.85 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 400,
+                  damping: 25
+                }}
+                className="fixed inset-0 flex items-center justify-center z-20 pointer-events-none"
+              >
+                <div className="bg-white rounded-xl shadow-2xl p-6 pointer-events-auto border border-gray-100 min-w-[280px]">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: activeCategory.color }}
+                    />
+                    <h3 className="font-semibold text-lg text-gray-800">{activeCategory.name}</h3>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Budget:</span>
+                      <span className="font-semibold text-gray-800">${activeCategory.budget.toFixed(0)}</span>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Spent:</span>
+                      <span className="font-semibold text-gray-800">${activeCategory.spent.toFixed(0)}</span>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Remaining:</span>
+                      <span className={`font-semibold ${
+                        activeCategory.spent > activeCategory.budget ? 'text-red-500' : 'text-green-500'
+                      }`}>
+                        ${Math.abs(activeCategory.budget - activeCategory.spent).toFixed(0)}
+                      </span>
+                    </div>
+
+                    {/* Progress bar with correct color */}
+                    <div className="pt-2">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs text-gray-500">Usage</span>
+                        <span className="text-xs font-medium text-gray-600">
+                          {activeCategory.percentage.toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min(activeCategory.percentage, 100)}%` }}
+                          transition={{ delay: 0.2, duration: 0.6, ease: "easeOut" }}
+                          className="h-full rounded-full transition-all duration-300"
+                          style={{
+                            backgroundColor: getProgressColor(activeCategory.percentage)
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {activeCategory.percentage >= 100 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-xs text-red-600 font-medium bg-red-50 px-2 py-1 rounded"
+                      >
+                        ⚠️ Over budget by ${(activeCategory.spent - activeCategory.budget).toFixed(0)}
+                      </motion.div>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
       </div>
 
       <div className="mt-6 space-y-2">
