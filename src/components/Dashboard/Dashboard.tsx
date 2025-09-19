@@ -153,14 +153,6 @@ const Dashboard: React.FC = () => {
                 <h2 className="text-xl font-semibold text-gray-800">
                   Budget Categories
                 </h2>
-                {selectedCategory && (
-                  <button
-                    onClick={() => setCategoryFilter(undefined)}
-                    className="text-sm text-mint-600 hover:text-mint-700 font-medium"
-                  >
-                    Show All Categories
-                  </button>
-                )}
               </div>
             </motion.div>
           </div>
@@ -171,6 +163,14 @@ const Dashboard: React.FC = () => {
               <div>
                 <h2 className="text-xl font-semibold text-gray-800">Transactions</h2>
               </div>
+              {selectedCategory && (
+                <button
+                  onClick={() => setCategoryFilter(undefined)}
+                  className="text-sm text-mint-600 hover:text-mint-700 font-medium"
+                >
+                  Show All Categories
+                </button>
+              )}
             </div>
           </div>
         </div>
