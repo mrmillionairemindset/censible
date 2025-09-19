@@ -87,16 +87,6 @@ const Dashboard: React.FC = () => {
                 </div>
               </div>
 
-              {/* Settings Button */}
-              <motion.button
-                onClick={() => setShowBudgetSettings(true)}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="p-3 bg-white rounded-xl shadow-soft hover:shadow-md transition-all duration-200 border border-gray-100"
-                aria-label="Budget Settings"
-              >
-                <Settings size={20} className="text-gray-600" />
-              </motion.button>
             </div>
           </motion.div>
         </div>
@@ -153,6 +143,15 @@ const Dashboard: React.FC = () => {
                 <h2 className="text-xl font-semibold text-gray-800">
                   Budget Categories
                 </h2>
+                <motion.button
+                  onClick={() => setShowBudgetSettings(true)}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="p-2 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                  aria-label="Budget Settings"
+                >
+                  <Settings size={18} className="text-gray-600" />
+                </motion.button>
               </div>
             </motion.div>
           </div>
