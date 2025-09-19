@@ -141,16 +141,16 @@ const Dashboard: React.FC = () => {
           </div>
         </motion.div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-5 gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-5 gap-8 items-stretch">
           {/* Categories Grid */}
           <div className="xl:col-span-3">
             <motion.div
               variants={staggerContainer}
               initial="initial"
               animate="animate"
-              className="space-y-6"
+              className="h-full flex flex-col"
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-gray-800">
                   Budget Categories
                 </h2>
@@ -183,8 +183,8 @@ const Dashboard: React.FC = () => {
             </motion.div>
           </div>
 
-          {/* Right Column - Transaction List (Wider) */}
-          <div className="xl:col-span-2">
+          {/* Right Column - Transaction List (Height Matched) */}
+          <div className="xl:col-span-2 flex">
             <TransactionList />
           </div>
         </div>
