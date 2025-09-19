@@ -52,7 +52,7 @@ export const generateFinancialSummary = (
   const totalMonthlyIncome = calculateTotalMonthlyIncome(incomeSources);
   const totalMonthlyExpenses = calculateTotalMonthlyExpenses(categories);
   const totalMonthlySavings = calculateTotalMonthlySavingsTarget(savingsGoals);
-  const netCashFlow = totalMonthlyIncome - totalMonthlyExpenses - totalMonthlySavings;
+  const netCashFlow = totalMonthlyIncome - totalMonthlyExpenses;
   const disposableIncome = totalMonthlyIncome - totalMonthlyExpenses;
 
   return {
