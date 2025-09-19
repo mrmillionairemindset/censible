@@ -23,6 +23,27 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
   onClick,
   isSelected = false,
 }) => {
+  // Format category names for display
+  const formatCategoryName = (name: string) => {
+    // Handle special cases
+    const specialCases: Record<string, string> = {
+      'creditcards': 'Credit Cards',
+      'debtpayments': 'Debt Payments',
+      'givingcharity': 'Giving/Charity',
+      'personalcare': 'Personal Care'
+    };
+
+    const normalizedName = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (specialCases[normalizedName]) {
+      return specialCases[normalizedName];
+    }
+
+    // Otherwise, capitalize each word
+    return name
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
   const percentage = allocated > 0 ? (spent / allocated) * 100 : 0;
   const remaining = allocated - spent;
   const isOverBudget = remaining < 0;
@@ -94,7 +115,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
           {/* Header with Icon and Title */}
           <div className="flex items-center justify-center gap-2 mb-2">
             <span className="text-lg">{CategoryIcons[category]}</span>
-            <h3 className="font-medium text-base text-gray-800">{CategoryLabels[category]}</h3>
+            <h3 className="font-medium text-base text-gray-800">{CategoryLabels[category] || formatCategoryName(category)}</h3>
           </div>
 
           {/* Status Badge */}

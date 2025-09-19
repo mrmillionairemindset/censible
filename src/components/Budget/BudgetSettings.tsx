@@ -27,6 +27,27 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({
   onSave,
   onClose
 }) => {
+  // Format category names for display
+  const formatCategoryName = (name: string) => {
+    // Handle special cases
+    const specialCases: Record<string, string> = {
+      'creditcards': 'Credit Cards',
+      'debtpayments': 'Debt Payments',
+      'givingcharity': 'Giving/Charity',
+      'personalcare': 'Personal Care'
+    };
+
+    const normalizedName = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (specialCases[normalizedName]) {
+      return specialCases[normalizedName];
+    }
+
+    // Otherwise, capitalize each word
+    return name
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
   const [budgetCategories, setBudgetCategories] = useState<CustomCategory[]>(
     categories.map(cat => ({ ...cat }))
   );
@@ -68,7 +89,8 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({
 
   const handleAddCategory = () => {
     if (newCategory.name.trim()) {
-      const categoryKey = newCategory.name.toLowerCase().replace(/[^a-z0-9]/g, '') as CategoryType;
+      const formattedName = formatCategoryName(newCategory.name);
+      const categoryKey = formattedName.toLowerCase().replace(/[^a-z0-9]/g, '') as CategoryType;
       const category: CustomCategory = {
         category: categoryKey,
         allocated: parseFloat(newCategory.allocated.toString()) || 0,
@@ -85,7 +107,7 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({
 
       setNewCategory({ name: '', allocated: 0, icon: '📌' });
       setShowAddCategory(false);
-      toast.success(`${newCategory.name} category added!`);
+      toast.success(`${formattedName} category added!`);
     }
   };
 
@@ -104,7 +126,8 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({
   };
 
   const handleQuickAdd = (suggested: SuggestedCategory) => {
-    const categoryKey = suggested.name.toLowerCase().replace(/[^a-z0-9]/g, '') as CategoryType;
+    const formattedName = formatCategoryName(suggested.name);
+    const categoryKey = formattedName.toLowerCase().replace(/[^a-z0-9]/g, '') as CategoryType;
     const exists = budgetCategories.some(cat =>
       cat.category === categoryKey
     );
@@ -124,7 +147,7 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({
       const newTotal = calculatedTotal + category.allocated;
       setCalculatedTotal(newTotal);
 
-      toast.success(`${suggested.name} added!`);
+      toast.success(`${formattedName} added!`);
     }
   };
 
@@ -240,7 +263,7 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({
               <div key={category.category} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                 <span className="text-xl">{category.icon || CategoryIcons[category.category] || '📦'}</span>
                 <span className="flex-1 font-medium text-gray-800">
-                  {CategoryLabels[category.category] || category.category}
+                  {CategoryLabels[category.category] || formatCategoryName(category.category)}
                 </span>
                 <div className="flex items-center gap-2">
                   <span className="text-gray-500 text-sm">$</span>
