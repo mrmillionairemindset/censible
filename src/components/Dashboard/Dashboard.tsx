@@ -172,6 +172,7 @@ const Dashboard: React.FC = () => {
                       spent={category.spent}
                       allocated={category.allocated}
                       color={category.color}
+                      icon={category.icon}
                       recentTransactions={getRecentTransactionsCount(category.category)}
                       onClick={() => handleCategoryClick(category.category)}
                       isSelected={selectedCategory === category.category}

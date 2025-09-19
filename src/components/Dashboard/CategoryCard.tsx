@@ -9,6 +9,7 @@ interface CategoryCardProps {
   spent: number;
   allocated: number;
   color: string;
+  icon?: string;
   recentTransactions?: number;
   onClick?: () => void;
   isSelected?: boolean;
@@ -19,6 +20,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
   spent,
   allocated,
   color,
+  icon,
   recentTransactions = 0,
   onClick,
   isSelected = false,
@@ -114,7 +116,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
         <div className="flex-1 w-full text-center">
           {/* Header with Icon and Title */}
           <div className="flex items-center justify-center gap-2 mb-2">
-            <span className="text-lg">{CategoryIcons[category]}</span>
+            <span className="text-lg">{icon || CategoryIcons[category] || '📌'}</span>
             <h3 className="font-medium text-base text-gray-800">{CategoryLabels[category] || formatCategoryName(category)}</h3>
           </div>
 
