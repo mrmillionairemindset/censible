@@ -30,6 +30,15 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
     priority: 1
   });
 
+  // Normalize priorities to ensure they are sequential (1, 2, 3, ...)
+  const normalizePriorities = (goals: SavingsGoal[]): SavingsGoal[] => {
+    const sortedGoals = [...goals].sort((a, b) => a.priority - b.priority);
+    return sortedGoals.map((goal, index) => ({
+      ...goal,
+      priority: index + 1
+    }));
+  };
+
   // Load savings goals from localStorage
   useEffect(() => {
     const savedGoals = localStorage.getItem('centsible_savings_goals');
@@ -38,7 +47,9 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
         ...goal,
         targetDate: new Date(goal.targetDate)
       }));
-      setSavingsGoals(parsed);
+      // Normalize priorities on load to fix any broken data
+      const normalizedGoals = normalizePriorities(parsed);
+      setSavingsGoals(normalizedGoals);
     } else {
       // Initialize with demo data
       const demoGoals: SavingsGoal[] = [
@@ -130,17 +141,6 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
 
     const goalId = uuidv4();
 
-    // Auto-assign next priority if not set
-    const maxPriority = savingsGoals.reduce((max, g) => Math.max(max, g.priority), 0);
-    const priority = newGoal.priority || (maxPriority + 1);
-
-    // If user selected existing priority, bump others down
-    if (savingsGoals.some(g => g.priority === priority)) {
-      setSavingsGoals(prev => prev.map(g =>
-        g.priority >= priority ? { ...g, priority: g.priority + 1 } : g
-      ));
-    }
-
     const goal: SavingsGoal = {
       id: goalId,
       name: newGoal.name,
@@ -148,12 +148,15 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
       currentAmount: 0,
       targetDate: newGoal.targetDate ? new Date(newGoal.targetDate) : new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
       category: newGoal.category,
-      priority,
+      priority: newGoal.priority || (savingsGoals.length + 1),
       description: newGoal.description || undefined,
       isActive: true
     };
 
-    setSavingsGoals(prev => [...prev, goal]);
+    // Add the new goal and normalize all priorities
+    const updatedGoals = [...savingsGoals, goal];
+    const normalizedGoals = normalizePriorities(updatedGoals);
+    setSavingsGoals(normalizedGoals);
 
     // Reset form
     setNewGoal({
@@ -229,7 +232,9 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
   };
 
   const handleDeleteGoal = (id: string) => {
-    setSavingsGoals(savingsGoals.filter(goal => goal.id !== id));
+    const filteredGoals = savingsGoals.filter(goal => goal.id !== id);
+    const normalizedGoals = normalizePriorities(filteredGoals);
+    setSavingsGoals(normalizedGoals);
     toast.success('Savings goal deleted');
   };
 
@@ -289,29 +294,27 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
   };
 
   const movePriority = (goalId: string, direction: 'up' | 'down') => {
-    const goalIndex = savingsGoals.findIndex(g => g.id === goalId);
-    if (goalIndex === -1) return;
+    const sortedGoals = [...savingsGoals].sort((a, b) => a.priority - b.priority);
+    const currentIndex = sortedGoals.findIndex(g => g.id === goalId);
 
-    const newGoals = [...savingsGoals];
-    const currentGoal = newGoals[goalIndex];
+    if (currentIndex === -1) return;
 
-    if (direction === 'up' && currentGoal.priority > 1) {
-      // Find goal with priority one higher and swap
-      const higherPriorityGoal = newGoals.find(g => g.priority === currentGoal.priority - 1);
-      if (higherPriorityGoal) {
-        higherPriorityGoal.priority += 1;
-        currentGoal.priority -= 1;
-      }
-    } else if (direction === 'down') {
-      // Find goal with priority one lower and swap
-      const lowerPriorityGoal = newGoals.find(g => g.priority === currentGoal.priority + 1);
-      if (lowerPriorityGoal) {
-        lowerPriorityGoal.priority -= 1;
-        currentGoal.priority += 1;
-      }
-    }
+    // Check bounds
+    if (direction === 'up' && currentIndex === 0) return;
+    if (direction === 'down' && currentIndex === sortedGoals.length - 1) return;
 
-    setSavingsGoals(newGoals);
+    // Swap positions in the array
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    const reorderedGoals = [...sortedGoals];
+    [reorderedGoals[currentIndex], reorderedGoals[newIndex]] = [reorderedGoals[newIndex], reorderedGoals[currentIndex]];
+
+    // Normalize priorities to match the new order
+    const normalizedGoals = reorderedGoals.map((goal, index) => ({
+      ...goal,
+      priority: index + 1
+    }));
+
+    setSavingsGoals(normalizedGoals);
   };
 
   return (
@@ -365,12 +368,14 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
       {/* Savings Goals List */}
       <div className="space-y-4 mb-6">
         <AnimatePresence>
-          {sortedGoals.map((goal) => {
+          {sortedGoals.map((goal, index) => {
             const progress = goal.targetAmount > 0 ? (goal.currentAmount / goal.targetAmount) * 100 : 0;
             const remaining = goal.targetAmount - goal.currentAmount;
             const requiredMonthlySavings = calculateRequiredMonthlySavings(goal);
             const monthsToGoal = calculateMonthsToGoal(goal);
             const daysUntilTarget = Math.ceil((goal.targetDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+            const isFirst = index === 0;
+            const isLast = index === sortedGoals.length - 1;
 
             return (
               <motion.div
@@ -397,16 +402,25 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
                   <div className="flex gap-1">
                     <button
                       onClick={() => movePriority(goal.id, 'up')}
-                      className="p-1 hover:bg-gray-100 rounded transition-colors"
+                      className={`p-1 rounded transition-colors ${
+                        isFirst
+                          ? 'opacity-30 cursor-not-allowed'
+                          : 'hover:bg-gray-100'
+                      }`}
                       title="Move up"
-                      disabled={goal.priority === 1}
+                      disabled={isFirst}
                     >
                       <ArrowUp className="w-3 h-3 text-gray-600" />
                     </button>
                     <button
                       onClick={() => movePriority(goal.id, 'down')}
-                      className="p-1 hover:bg-gray-100 rounded transition-colors"
+                      className={`p-1 rounded transition-colors ${
+                        isLast
+                          ? 'opacity-30 cursor-not-allowed'
+                          : 'hover:bg-gray-100'
+                      }`}
                       title="Move down"
+                      disabled={isLast}
                     >
                       <ArrowDown className="w-3 h-3 text-gray-600" />
                     </button>
