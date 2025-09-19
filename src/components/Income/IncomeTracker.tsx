@@ -182,34 +182,18 @@ const IncomeTracker: React.FC = () => {
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-            <DollarSign className="w-5 h-5 text-green-600" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-gray-800">Income Tracker</h2>
-            <p className="text-sm text-gray-600">Manage your income sources</p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Income Tracker</h1>
+          <p className="text-sm text-gray-600 mt-1">Manage your income sources</p>
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* Show/Hide Inactive Toggle */}
-          <button
-            onClick={() => setShowInactive(!showInactive)}
-            className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
-          >
-            {showInactive ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
-            Show Inactive
-          </button>
-
-          <button
-            onClick={() => setShowAddForm(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
-          >
-            <Plus className="w-4 h-4" />
-            Add Income
-          </button>
-        </div>
+        <button
+          onClick={() => setShowAddForm(true)}
+          className="flex items-center gap-2 h-11 px-6 bg-[#27AE60] text-white rounded-full hover:bg-[#229954] transition-colors font-medium shadow-sm"
+        >
+          <Plus className="w-4 h-4" />
+          Income
+        </button>
       </div>
 
       {/* Total Monthly Income Card */}
@@ -311,6 +295,17 @@ const IncomeTracker: React.FC = () => {
             <p className="text-sm">Add your first income source to get started</p>
           </div>
         )}
+      </div>
+
+      {/* Show Inactive Toggle */}
+      <div className="mb-6">
+        <button
+          onClick={() => setShowInactive(!showInactive)}
+          className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+        >
+          {showInactive ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
+          {showInactive ? 'Hide Inactive Sources' : 'Show Inactive Sources'}
+        </button>
       </div>
 
       {/* Add/Edit Income Form */}
