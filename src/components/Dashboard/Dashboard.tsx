@@ -140,14 +140,14 @@ const Dashboard: React.FC = () => {
           </div>
         </motion.div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-5 gap-8 items-stretch">
+        <div className="grid grid-cols-1 xl:grid-cols-5 gap-8 items-start">
           {/* Categories Grid */}
           <div className="xl:col-span-3">
             <motion.div
               variants={staggerContainer}
               initial="initial"
               animate="animate"
-              className="h-full flex flex-col"
+              className="flex flex-col"
             >
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-gray-800">
@@ -162,7 +162,31 @@ const Dashboard: React.FC = () => {
                   </button>
                 )}
               </div>
+            </motion.div>
+          </div>
 
+          {/* Right Column - Transaction List Header */}
+          <div className="xl:col-span-2">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800">Transactions</h2>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Full-width Alignment Reference Line - Invisible */}
+        <div className="h-px bg-transparent mb-6"></div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-5 gap-8 items-start">
+          {/* Categories Grid Content */}
+          <div className="xl:col-span-3">
+            <motion.div
+              variants={staggerContainer}
+              initial="initial"
+              animate="animate"
+              className="flex flex-col"
+            >
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {budget.categories.map((category) => (
                   <motion.div key={category.category} variants={staggerItem} className="h-[350px]">
@@ -182,9 +206,8 @@ const Dashboard: React.FC = () => {
             </motion.div>
           </div>
 
-          {/* Right Column - Transaction List (Height Matched) */}
-          <div className="xl:col-span-2 flex flex-col">
-            <div className="h-[60px]"></div> {/* Spacer to align with category cards */}
+          {/* Right Column - Transaction List Content */}
+          <div className="xl:col-span-2">
             <TransactionList />
           </div>
         </div>

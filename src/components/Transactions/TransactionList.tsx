@@ -115,8 +115,7 @@ const TransactionList: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-xl font-semibold text-gray-800">Transactions</h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-500">
             {filteredTransactions.length} transaction{filteredTransactions.length !== 1 ? 's' : ''}
             {selectedCategory && ` in ${CategoryLabels[selectedCategory]}`}
           </p>
