@@ -184,7 +184,8 @@ const Dashboard: React.FC = () => {
           </div>
 
           {/* Right Column - Transaction List (Height Matched) */}
-          <div className="xl:col-span-2 flex">
+          <div className="xl:col-span-2 flex flex-col">
+            <div className="h-[60px]"></div> {/* Spacer to align with category cards */}
             <TransactionList />
           </div>
         </div>
