@@ -16,6 +16,7 @@ import FinancialHealth from '../Financial/FinancialHealth';
 import { CategoryType } from '../../types';
 import { staggerContainer, staggerItem } from '../../utils/animations';
 import { useBillNotifications } from '../../hooks/useBillNotifications';
+// Logo will be loaded from public folder
 
 const Dashboard: React.FC = () => {
   const {
@@ -56,11 +57,9 @@ const Dashboard: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             className="flex items-center justify-between"
           >
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800">
-                💰 Centsible
-              </h1>
-              <p className="text-gray-600 mt-1">
+            <div className="flex flex-col items-center">
+              <img src="/logo.png" alt="Centsible Logo" className="h-28 w-auto" />
+              <p className="text-sm text-gray-600 -mt-2 text-center">
                 Smart budget tracking that makes cents!
               </p>
             </div>
