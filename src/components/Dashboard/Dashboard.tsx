@@ -10,12 +10,23 @@ import ReceiptUploader from '../Scanner/ReceiptUploader';
 import QuickExpenseModal from '../Transactions/QuickExpenseModal';
 import BillManager from '../Bills/BillManager';
 import BudgetSettings from '../Budget/BudgetSettings';
+import IncomeTracker from '../Income/IncomeTracker';
+import SavingsGoals from '../Savings/SavingsGoals';
+import FinancialHealth from '../Financial/FinancialHealth';
 import { CategoryType } from '../../types';
 import { staggerContainer, staggerItem } from '../../utils/animations';
 import { useBillNotifications } from '../../hooks/useBillNotifications';
 
 const Dashboard: React.FC = () => {
-  const { budget, transactions, setCategoryFilter, selectedCategory, updateCategoryBudgets } = useBudget();
+  const {
+    budget,
+    transactions,
+    setCategoryFilter,
+    selectedCategory,
+    updateCategoryBudgets,
+    financialSummary,
+    financialHealth
+  } = useBudget();
   const { getUrgentBillsCount } = useBillNotifications();
   const [showReceiptUploader, setShowReceiptUploader] = useState(false);
   const [showManualEntry, setShowManualEntry] = useState(false);
@@ -174,6 +185,34 @@ const Dashboard: React.FC = () => {
           {/* Right Column - Transaction List */}
           <div className="xl:col-span-1">
             <TransactionList />
+          </div>
+        </div>
+
+        {/* Income, Savings & Financial Health Section */}
+        <div className="mt-12">
+          <h2 className="text-2xl font-bold text-gray-800 mb-6">Financial Overview</h2>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+            {/* Income Tracker */}
+            <div className="lg:col-span-1">
+              <IncomeTracker />
+            </div>
+
+            {/* Savings Goals */}
+            <div className="lg:col-span-1">
+              <SavingsGoals
+                totalMonthlyIncome={financialSummary.totalMonthlyIncome}
+                totalMonthlyExpenses={financialSummary.totalMonthlyExpenses}
+              />
+            </div>
+
+            {/* Financial Health */}
+            <div className="lg:col-span-2 xl:col-span-1">
+              <FinancialHealth
+                financialSummary={financialSummary}
+                financialHealth={financialHealth}
+              />
+            </div>
           </div>
         </div>
       </div>

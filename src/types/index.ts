@@ -108,3 +108,71 @@ export const CategoryLabels: Record<CategoryType, string> = {
   utilities: 'Utilities',
   other: 'Other'
 };
+
+// Income and Savings Types
+export type IncomeFrequency = 'weekly' | 'bi-weekly' | 'monthly' | 'yearly' | 'one-time';
+
+export interface IncomeSource {
+  id: string;
+  source: string;
+  amount: number;
+  frequency: IncomeFrequency;
+  startDate: Date;
+  isActive: boolean;
+  category?: 'salary' | 'freelance' | 'investments' | 'business' | 'other';
+  description?: string;
+}
+
+export type SavingsGoalCategory = 'emergency-fund' | 'vacation' | 'major-purchase' | 'retirement' | 'custom';
+
+export interface SavingsGoal {
+  id: string;
+  name: string;
+  targetAmount: number;
+  currentAmount: number;
+  targetDate: Date;
+  category: SavingsGoalCategory;
+  priority: number;
+  description?: string;
+  isActive: boolean;
+}
+
+export interface FinancialHealth {
+  score: number; // 0-100
+  incomeExpenseRatio: number;
+  savingsRate: number; // percentage
+  emergencyFundWeeks: number;
+  recommendations: string[];
+}
+
+export interface FinancialSummary {
+  totalMonthlyIncome: number;
+  totalMonthlyExpenses: number;
+  totalMonthlySavings: number;
+  netCashFlow: number;
+  disposableIncome: number;
+}
+
+export const IncomeFrequencyLabels: Record<IncomeFrequency, string> = {
+  weekly: 'Weekly',
+  'bi-weekly': 'Bi-Weekly',
+  monthly: 'Monthly',
+  yearly: 'Yearly',
+  'one-time': 'One-time'
+};
+
+export const SavingsGoalCategoryLabels: Record<SavingsGoalCategory, string> = {
+  'emergency-fund': 'Emergency Fund',
+  vacation: 'Vacation',
+  'major-purchase': 'Major Purchase',
+  retirement: 'Retirement',
+  custom: 'Custom'
+};
+
+export const SavingsGoalCategoryIcons: Record<SavingsGoalCategory, string> = {
+  'emergency-fund': '🛡️',
+  vacation: '✈️',
+  'major-purchase': '🏡',
+  retirement: '🏖️',
+  custom: '🎯'
+};

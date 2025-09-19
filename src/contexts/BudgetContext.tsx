@@ -1,10 +1,27 @@
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
-import { Transaction, Budget, CategoryType, BudgetCategory, CategoryColors, CategoryIcons } from '../types';
+import React, { createContext, useContext, useReducer, useEffect, ReactNode, useMemo } from 'react';
+import {
+  Transaction,
+  Budget,
+  CategoryType,
+  BudgetCategory,
+  CategoryColors,
+  CategoryIcons,
+  IncomeSource,
+  SavingsGoal,
+  FinancialHealth,
+  FinancialSummary
+} from '../types';
 import { v4 as uuidv4 } from 'uuid';
+import {
+  generateFinancialSummary,
+  calculateFinancialHealth
+} from '../utils/financialCalculations';
 
 interface BudgetState {
   transactions: Transaction[];
   budget: Budget;
+  incomeSources: IncomeSource[];
+  savingsGoals: SavingsGoal[];
   selectedCategory?: CategoryType;
   isLoading: boolean;
   error?: string;
@@ -20,7 +37,9 @@ type BudgetAction =
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | undefined }
   | { type: 'UPDATE_CATEGORY_SPENT'; payload: { category: CategoryType; amount: number } }
-  | { type: 'UPDATE_CATEGORY_BUDGETS'; payload: { categories: BudgetCategory[]; totalBudget: number } };
+  | { type: 'UPDATE_CATEGORY_BUDGETS'; payload: { categories: BudgetCategory[]; totalBudget: number } }
+  | { type: 'SET_INCOME_SOURCES'; payload: IncomeSource[] }
+  | { type: 'SET_SAVINGS_GOALS'; payload: SavingsGoal[] };
 
 const defaultCategories: BudgetCategory[] = [
   { category: 'groceries', allocated: 500, spent: 0, color: CategoryColors.groceries, icon: CategoryIcons.groceries },
@@ -41,6 +60,8 @@ const initialState: BudgetState = {
     period: 'monthly',
     startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   },
+  incomeSources: [],
+  savingsGoals: [],
   selectedCategory: undefined,
   isLoading: false,
   error: undefined,
@@ -166,6 +187,12 @@ function budgetReducer(state: BudgetState, action: BudgetAction): BudgetState {
       };
     }
 
+    case 'SET_INCOME_SOURCES':
+      return { ...state, incomeSources: action.payload };
+
+    case 'SET_SAVINGS_GOALS':
+      return { ...state, savingsGoals: action.payload };
+
     default:
       return state;
   }
@@ -181,6 +208,8 @@ interface BudgetContextType extends BudgetState {
   getRemainingBudget: () => number;
   getCategorySpending: (category: CategoryType) => { spent: number; allocated: number; percentage: number };
   updateCategoryBudgets: (categories: BudgetCategory[], totalBudget: number) => void;
+  financialSummary: FinancialSummary;
+  financialHealth: FinancialHealth;
 }
 
 const BudgetContext = createContext<BudgetContextType | undefined>(undefined);
@@ -240,6 +269,26 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
 
           // Set transactions last
           dispatch({ type: 'SET_TRANSACTIONS', payload: transactions });
+        }
+
+        // Load income sources
+        const savedIncome = localStorage.getItem('centsible_income');
+        if (savedIncome) {
+          const income = JSON.parse(savedIncome).map((source: any) => ({
+            ...source,
+            startDate: new Date(source.startDate)
+          }));
+          dispatch({ type: 'SET_INCOME_SOURCES', payload: income });
+        }
+
+        // Load savings goals
+        const savedGoals = localStorage.getItem('centsible_savings_goals');
+        if (savedGoals) {
+          const goals = JSON.parse(savedGoals).map((goal: any) => ({
+            ...goal,
+            targetDate: new Date(goal.targetDate)
+          }));
+          dispatch({ type: 'SET_SAVINGS_GOALS', payload: goals });
         }
       } catch (error) {
         console.error('Error loading data from localStorage:', error);
@@ -304,6 +353,17 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
     dispatch({ type: 'UPDATE_CATEGORY_BUDGETS', payload: { categories, totalBudget } });
   };
 
+  // Calculate financial summary and health
+  const financialSummary = useMemo(() =>
+    generateFinancialSummary(state.incomeSources, state.budget.categories, state.savingsGoals),
+    [state.incomeSources, state.budget.categories, state.savingsGoals]
+  );
+
+  const financialHealth = useMemo(() =>
+    calculateFinancialHealth(financialSummary, state.savingsGoals),
+    [financialSummary, state.savingsGoals]
+  );
+
   const value: BudgetContextType = {
     ...state,
     addTransaction,
@@ -315,6 +375,8 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
     getRemainingBudget,
     getCategorySpending,
     updateCategoryBudgets,
+    financialSummary,
+    financialHealth,
   };
 
   return <BudgetContext.Provider value={value}>{children}</BudgetContext.Provider>;
