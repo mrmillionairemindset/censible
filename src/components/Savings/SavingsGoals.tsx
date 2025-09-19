@@ -315,35 +315,35 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-all"
+                className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-all overflow-hidden"
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3 flex-1">
-                    <span className="text-2xl">{SavingsGoalCategoryIcons[goal.category]}</span>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-medium text-gray-800">{goal.name}</h3>
-                        <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <span className="text-2xl flex-shrink-0">{SavingsGoalCategoryIcons[goal.category]}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <h3 className="font-medium text-gray-800 truncate">{goal.name}</h3>
+                        <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full whitespace-nowrap">
                           Priority #{goal.priority}
                         </span>
-                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-600 rounded-full">
+                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-600 rounded-full whitespace-nowrap">
                           {SavingsGoalCategoryLabels[goal.category]}
                         </span>
                       </div>
                       {goal.description && (
-                        <p className="text-sm text-gray-600 mb-2">{goal.description}</p>
+                        <p className="text-sm text-gray-600 mb-2 line-clamp-2">{goal.description}</p>
                       )}
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
-                        <span>${goal.currentAmount.toFixed(0)} / ${goal.targetAmount.toFixed(0)}</span>
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                        <span className="whitespace-nowrap">${goal.currentAmount.toFixed(0)} / ${goal.targetAmount.toFixed(0)}</span>
+                        <span className="flex items-center gap-1 whitespace-nowrap">
+                          <Calendar className="w-3 h-3 flex-shrink-0" />
                           {daysUntilTarget > 0 ? `${daysUntilTarget} days left` : 'Overdue'}
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     {/* Priority Controls */}
                     <div className="flex flex-col gap-1">
                       <button
@@ -361,24 +361,28 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
                       </button>
                     </div>
 
-                    <button
-                      onClick={() => setShowAddFundsId(goal.id)}
-                      className="px-3 py-1 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 transition-colors"
-                    >
-                      Add Funds
-                    </button>
-                    <button
-                      onClick={() => handleEditGoal(goal)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteGoal(goal.id)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => setShowAddFundsId(goal.id)}
+                        className="px-3 py-1 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 transition-colors whitespace-nowrap"
+                      >
+                        Add Funds
+                      </button>
+                      <button
+                        onClick={() => handleEditGoal(goal)}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Edit Goal"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteGoal(goal.id)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete Goal"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
 
