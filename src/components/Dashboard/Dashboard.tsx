@@ -58,9 +58,9 @@ const Dashboard: React.FC = () => {
             className="flex items-center justify-between"
           >
             <div className="flex flex-col items-center">
-              <img src="/logo.png" alt="Centsible Logo" className="h-28 w-auto" />
+              <img src="/logo.png" alt="Centsible Logo" className="h-20 w-auto" />
               <p className="text-sm text-gray-600 -mt-2 text-center">
-                Smart budget tracking that makes cents!
+                AI-powered budget clarity
               </p>
             </div>
 
