@@ -51,56 +51,59 @@ const SpendingDonutChart: React.FC = () => {
       const spent = categoryData?.spent || 0;
       const allocated = data.value;
       const spentPercentage = allocated > 0 ? (spent / allocated) * 100 : 0;
+      const remaining = allocated - spent;
 
       return (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="bg-white p-3 rounded-lg shadow-large border border-gray-100"
-        >
-          <p className="font-semibold text-gray-800">{data.name}</p>
-          <div className="space-y-1">
-            <p className="text-sm text-gray-600">
-              Allocated: <span className="font-semibold">${allocated.toFixed(0)}</span>
-            </p>
-            <p className="text-sm text-gray-600">
-              Spent: <span className="font-semibold">${spent.toFixed(0)}</span>
-            </p>
-            <p className="text-sm text-gray-500">
-              {spentPercentage.toFixed(1)}% used
-            </p>
+        <div className="bg-white p-3 rounded-lg shadow-xl border border-gray-200 z-50">
+          <p className="font-semibold text-gray-800 mb-2">{data.name}</p>
+          <div className="space-y-1 text-sm">
+            <div className="flex justify-between gap-4">
+              <span className="text-gray-600">Budget:</span>
+              <span className="font-semibold text-gray-800">${allocated.toFixed(0)}</span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-gray-600">Spent:</span>
+              <span className="font-semibold text-gray-800">${spent.toFixed(0)}</span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-gray-600">Remaining:</span>
+              <span className={`font-semibold ${remaining >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                ${Math.abs(remaining).toFixed(0)}
+              </span>
+            </div>
+            <div className="pt-1 mt-1 border-t border-gray-100">
+              <div className="flex items-center gap-2">
+                <div className="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
+                  <div
+                    className={`h-full transition-all ${
+                      spentPercentage >= 100 ? 'bg-red-500' :
+                      spentPercentage >= 75 ? 'bg-amber-500' :
+                      'bg-green-500'
+                    }`}
+                    style={{ width: `${Math.min(spentPercentage, 100)}%` }}
+                  />
+                </div>
+                <span className="text-xs font-medium text-gray-600">
+                  {spentPercentage.toFixed(0)}%
+                </span>
+              </div>
+            </div>
           </div>
-        </motion.div>
+        </div>
       );
     }
     return null;
   };
 
   const renderCenterLabel = () => {
-    const displayAmount = hoveredSegment
-      ? budget.categories.find(c => c.category === hoveredSegment)?.spent || 0
-      : remaining;
-
-    const displayLabel = hoveredSegment
-      ? CategoryLabels[hoveredSegment]
-      : remaining >= 0 ? 'Remaining' : 'Over Budget';
-
+    // Keep center label static - don't change on hover
+    const displayAmount = remaining;
+    const displayLabel = remaining >= 0 ? 'Remaining' : 'Over Budget';
     const displayColor = remaining < 0 ? 'text-red-500' : 'text-mint-600';
 
     return (
-      <motion.div
-        className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
-        initial={false}
-        animate={{ scale: hoveredSegment ? 1.05 : 1 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-      >
-        <motion.div
-          key={displayAmount}
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 10 }}
-          className="text-center"
-        >
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+        <div className="text-center">
           <p className="text-sm text-gray-500 mb-1">{displayLabel}</p>
           <p className={`text-3xl font-bold ${displayColor}`}>
             ${Math.abs(displayAmount).toFixed(0)}
@@ -110,8 +113,8 @@ const SpendingDonutChart: React.FC = () => {
               {((Math.abs(remaining) / budget.totalBudget) * 100).toFixed(1)}% over
             </p>
           )}
-        </motion.div>
-      </motion.div>
+        </div>
+      </div>
     );
   };
 
@@ -160,21 +163,24 @@ const SpendingDonutChart: React.FC = () => {
                 <Cell
                   key={`cell-${index}`}
                   fill={entry.color}
-                  stroke={selectedSegment === entry.category ? '#10B981' : 'none'}
-                  strokeWidth={selectedSegment === entry.category ? 3 : 0}
+                  stroke={selectedSegment === entry.category ? '#10B981' : hoveredSegment === entry.category ? entry.color : 'none'}
+                  strokeWidth={selectedSegment === entry.category ? 3 : hoveredSegment === entry.category ? 2 : 0}
                   style={{
                     filter: selectedSegment && selectedSegment !== entry.category
                       ? 'opacity(0.3)'
-                      : hoveredSegment === entry.category
-                      ? 'brightness(1.1)'
                       : 'none',
+                    opacity: hoveredSegment === entry.category ? 0.9 : 1,
                     cursor: entry.name !== 'Available' ? 'pointer' : 'default',
-                    transition: 'all 0.3s ease',
+                    transition: 'all 0.2s ease',
                   }}
                 />
               ))}
             </Pie>
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip
+              content={<CustomTooltip />}
+              cursor={false}
+              wrapperStyle={{ zIndex: 1000 }}
+            />
           </PieChart>
         </ResponsiveContainer>
         {renderCenterLabel()}

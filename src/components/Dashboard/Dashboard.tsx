@@ -7,13 +7,17 @@ import TransactionList from '../Transactions/TransactionList';
 import FloatingActionButton from '../Layout/FloatingActionButton';
 import ReceiptUploader from '../Scanner/ReceiptUploader';
 import QuickExpenseModal from '../Transactions/QuickExpenseModal';
+import BillManager from '../Bills/BillManager';
 import { CategoryType } from '../../types';
 import { staggerContainer, staggerItem } from '../../utils/animations';
+import { useBillNotifications } from '../../hooks/useBillNotifications';
 
 const Dashboard: React.FC = () => {
   const { budget, transactions, setCategoryFilter, selectedCategory } = useBudget();
+  const { getUrgentBillsCount } = useBillNotifications();
   const [showReceiptUploader, setShowReceiptUploader] = useState(false);
   const [showManualEntry, setShowManualEntry] = useState(false);
+  const [showBillManager, setShowBillManager] = useState(false);
 
   // Get recent transactions count for each category
   const getRecentTransactionsCount = (category: CategoryType) => {
@@ -186,7 +190,8 @@ const Dashboard: React.FC = () => {
       <FloatingActionButton
         onQuickScan={() => setShowReceiptUploader(true)}
         onManualEntry={() => setShowManualEntry(true)}
-        onRecentReceipt={() => setShowReceiptUploader(true)}
+        onBillManager={() => setShowBillManager(true)}
+        urgentBillsCount={getUrgentBillsCount()}
       />
 
       {/* Modals */}
@@ -200,6 +205,12 @@ const Dashboard: React.FC = () => {
       {showManualEntry && (
         <QuickExpenseModal
           onClose={() => setShowManualEntry(false)}
+        />
+      )}
+
+      {showBillManager && (
+        <BillManager
+          onClose={() => setShowBillManager(false)}
         />
       )}
 

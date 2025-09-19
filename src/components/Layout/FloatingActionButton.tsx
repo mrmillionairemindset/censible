@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Camera, DollarSign, Receipt, X } from 'lucide-react';
+import { Plus, Camera, DollarSign, Calendar, X } from 'lucide-react';
 import { fabExpand, fabStagger } from '../../utils/animations';
 
 interface FABAction {
@@ -14,13 +14,15 @@ interface FABAction {
 interface FloatingActionButtonProps {
   onQuickScan: () => void;
   onManualEntry: () => void;
-  onRecentReceipt: () => void;
+  onBillManager: () => void;
+  urgentBillsCount?: number;
 }
 
 const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
   onQuickScan,
   onManualEntry,
-  onRecentReceipt,
+  onBillManager,
+  urgentBillsCount = 0,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [hoveredAction, setHoveredAction] = useState<string | null>(null);
@@ -47,12 +49,12 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
       },
     },
     {
-      id: 'recent',
-      label: 'Recent Receipt',
-      icon: <Receipt size={20} />,
+      id: 'bills',
+      label: 'Bills',
+      icon: <Calendar size={20} />,
       color: 'bg-purple-500',
       onClick: () => {
-        onRecentReceipt();
+        onBillManager();
         setIsExpanded(false);
       },
     },
@@ -177,12 +179,16 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
           </motion.div>
 
           {/* Notification Badge */}
-          {!isExpanded && (
+          {!isExpanded && urgentBillsCount > 0 && (
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"
-            />
+              className="absolute -top-1 -right-1 min-w-[1.25rem] h-5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center"
+            >
+              <span className="text-xs font-bold text-white px-1">
+                {urgentBillsCount > 9 ? '9+' : urgentBillsCount}
+              </span>
+            </motion.div>
           )}
         </motion.button>
 
