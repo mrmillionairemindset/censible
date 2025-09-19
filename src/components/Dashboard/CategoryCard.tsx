@@ -79,8 +79,8 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
       whileHover={{ y: -2, boxShadow: '0px 8px 16px rgba(0, 0, 0, 0.1)' }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className={`relative p-4 rounded-2xl border-2 transition-all duration-200 cursor-pointer min-h-[200px] flex flex-col justify-between ${getStatusColor()} ${
-        isSelected ? 'ring-2 ring-mint-500 ring-offset-2' : ''
+      className={`relative p-4 rounded-2xl border-2 transition-all duration-200 cursor-pointer h-[350px] flex flex-col justify-between ${getStatusColor()} ${
+        isSelected ? 'border-mint-500 shadow-lg' : ''
       }`}
     >
       {/* Status Badge */}

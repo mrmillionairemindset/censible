@@ -164,9 +164,9 @@ const Dashboard: React.FC = () => {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 auto-rows-fr">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {budget.categories.map((category) => (
-                  <motion.div key={category.category} variants={staggerItem} className="h-full">
+                  <motion.div key={category.category} variants={staggerItem} className="h-[350px]">
                     <CategoryCard
                       category={category.category}
                       spent={category.spent}
