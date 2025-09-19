@@ -17,8 +17,9 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
   const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingGoal, setEditingGoal] = useState<SavingsGoal | null>(null);
-  const [showAddFundsId, setShowAddFundsId] = useState<string | null>(null);
-  const [addFundsAmount, setAddFundsAmount] = useState('');
+  const [activeGoalId, setActiveGoalId] = useState<string | null>(null);
+  const [mode, setMode] = useState<'add' | 'withdraw'>('add');
+  const [amount, setAmount] = useState('');
   const [newGoal, setNewGoal] = useState({
     name: '',
     targetAmount: '',
@@ -202,22 +203,59 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
     toast.success('Savings goal deleted');
   };
 
-  const handleAddFunds = (goalId: string) => {
-    const amount = parseFloat(addFundsAmount);
-    if (isNaN(amount) || amount <= 0) {
+  const handleSubmit = (goalId: string) => {
+    const amountValue = parseFloat(amount);
+    const goal = savingsGoals.find(g => g.id === goalId);
+
+    if (isNaN(amountValue) || amountValue <= 0) {
       toast.error('Please enter a valid amount');
       return;
     }
 
-    setSavingsGoals(savingsGoals.map(goal =>
-      goal.id === goalId
-        ? { ...goal, currentAmount: goal.currentAmount + amount }
-        : goal
+    if (!goal) {
+      toast.error('Goal not found');
+      return;
+    }
+
+    if (mode === 'withdraw' && amountValue > goal.currentAmount) {
+      toast.error(`Cannot withdraw more than current balance ($${goal.currentAmount.toFixed(2)})`);
+      return;
+    }
+
+    setSavingsGoals(savingsGoals.map(g =>
+      g.id === goalId
+        ? {
+            ...g,
+            currentAmount: mode === 'add'
+              ? g.currentAmount + amountValue
+              : Math.max(0, g.currentAmount - amountValue)
+          }
+        : g
     ));
 
-    setShowAddFundsId(null);
-    setAddFundsAmount('');
-    toast.success(`$${amount} added to savings goal!`);
+    setActiveGoalId(null);
+    setAmount('');
+    setMode('add');
+    toast.success(`$${amountValue} ${mode === 'add' ? 'added to' : 'withdrawn from'} savings goal!`);
+  };
+
+  const handleQuickAmount = (goalId: string, quickValue: string | number) => {
+    const goal = savingsGoals.find(g => g.id === goalId);
+    if (!goal) return;
+
+    if (mode === 'add') {
+      setAmount(quickValue.toString());
+    } else {
+      // Handle percentage-based withdrawals
+      let withdrawalAmount: number;
+      if (quickValue === 'All') {
+        withdrawalAmount = goal.currentAmount;
+      } else {
+        const percentage = parseInt(quickValue.toString().replace('%', '')) / 100;
+        withdrawalAmount = Math.round(goal.currentAmount * percentage * 100) / 100;
+      }
+      setAmount(withdrawalAmount.toString());
+    }
   };
 
   const movePriority = (goalId: string, direction: 'up' | 'down') => {
@@ -315,145 +353,192 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-all overflow-hidden"
+                className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-all overflow-hidden space-y-4"
               >
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <span className="text-2xl flex-shrink-0">{SavingsGoalCategoryIcons[goal.category]}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <h3 className="font-medium text-gray-800 truncate">{goal.name}</h3>
-                        <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full whitespace-nowrap">
-                          Priority #{goal.priority}
-                        </span>
-                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-600 rounded-full whitespace-nowrap">
-                          {SavingsGoalCategoryLabels[goal.category]}
-                        </span>
-                      </div>
-                      {goal.description && (
-                        <p className="text-sm text-gray-600 mb-2 line-clamp-2">{goal.description}</p>
-                      )}
-                      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                        <span className="whitespace-nowrap">${goal.currentAmount.toFixed(0)} / ${goal.targetAmount.toFixed(0)}</span>
-                        <span className="flex items-center gap-1 whitespace-nowrap">
-                          <Calendar className="w-3 h-3 flex-shrink-0" />
-                          {daysUntilTarget > 0 ? `${daysUntilTarget} days left` : 'Overdue'}
-                        </span>
-                      </div>
+                {/* Header Row */}
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{SavingsGoalCategoryIcons[goal.category]}</span>
+                    <div>
+                      <h3 className="font-medium text-gray-800">{goal.name}</h3>
+                      <span className="text-xs text-gray-500">Priority #{goal.priority}</span>
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {/* Priority Controls */}
-                    <div className="flex flex-col gap-1">
-                      <button
-                        onClick={() => movePriority(goal.id, 'up')}
-                        className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
-                        disabled={goal.priority === 1}
-                      >
-                        <ArrowUp className="w-3 h-3" />
-                      </button>
-                      <button
-                        onClick={() => movePriority(goal.id, 'down')}
-                        className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
-                      >
-                        <ArrowDown className="w-3 h-3" />
-                      </button>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => setShowAddFundsId(goal.id)}
-                        className="px-3 py-1 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 transition-colors whitespace-nowrap"
-                      >
-                        Add Funds
-                      </button>
-                      <button
-                        onClick={() => handleEditGoal(goal)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Edit Goal"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteGoal(goal.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete Goal"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => movePriority(goal.id, 'up')}
+                      className="p-1 hover:bg-gray-100 rounded transition-colors"
+                      title="Move up"
+                      disabled={goal.priority === 1}
+                    >
+                      <ArrowUp className="w-3 h-3 text-gray-600" />
+                    </button>
+                    <button
+                      onClick={() => movePriority(goal.id, 'down')}
+                      className="p-1 hover:bg-gray-100 rounded transition-colors"
+                      title="Move down"
+                    >
+                      <ArrowDown className="w-3 h-3 text-gray-600" />
+                    </button>
+                    <button
+                      onClick={() => handleEditGoal(goal)}
+                      className="p-1 hover:bg-gray-100 rounded transition-colors"
+                      title="Edit"
+                    >
+                      <Edit3 className="w-3 h-3 text-gray-600" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteGoal(goal.id)}
+                      className="p-1 hover:bg-red-50 text-red-600 rounded transition-colors"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
                   </div>
                 </div>
 
-                {/* Progress Bar */}
-                <div className="mb-3">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm text-gray-600">Progress</span>
-                    <span className="text-sm font-medium text-gray-800">{progress.toFixed(1)}%</span>
+                {/* Amount and Progress */}
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-lg font-bold text-gray-800">
+                      ${goal.currentAmount.toFixed(0)} / ${goal.targetAmount.toFixed(0)}
+                    </span>
+                    <span className="text-sm font-medium text-gray-600">{progress.toFixed(1)}%</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                  <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${Math.min(progress, 100)}%` }}
                       transition={{ duration: 0.8, ease: 'easeOut' }}
-                      className={`h-full bg-gradient-to-r ${getProgressColor(progress)} rounded-full`}
+                      className="bg-gradient-to-r from-blue-400 to-green-500 h-full rounded-full"
                     />
                   </div>
-                </div>
-
-                {/* Goal Stats */}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <p className="text-gray-600">Remaining</p>
-                    <p className="font-medium text-gray-800">${remaining.toFixed(0)}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-600">Required/Month</p>
-                    <p className="font-medium text-gray-800">${requiredMonthlySavings.toFixed(0)}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-600">At Current Rate</p>
-                    <p className="font-medium text-gray-800">
-                      {monthsToGoal === Infinity ? '∞' : `${monthsToGoal.toFixed(0)}mo`}
-                    </p>
+                  <div className="flex justify-between mt-1 text-xs text-gray-600">
+                    <span>${remaining.toFixed(0)} remaining</span>
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      {daysUntilTarget > 0 ? `${daysUntilTarget} days left` : 'Overdue'}
+                    </span>
                   </div>
                 </div>
 
-                {/* Add Funds Modal */}
+                {/* Action Button */}
+                <button
+                  onClick={() => {
+                    setActiveGoalId(goal.id);
+                    setMode('add');
+                  }}
+                  className="w-full py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors font-medium"
+                >
+                  Manage Funds
+                </button>
+
+                {/* Expanded Management Section */}
                 <AnimatePresence>
-                  {showAddFundsId === goal.id && (
+                  {activeGoalId === goal.id && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="mt-4 pt-4 border-t border-gray-200"
+                      className="space-y-4 border-t border-gray-200 pt-4"
                     >
-                      <div className="flex gap-3">
-                        <input
-                          type="number"
-                          placeholder="Amount to add"
-                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:border-green-500 focus:outline-none"
-                          value={addFundsAmount}
-                          onChange={(e) => setAddFundsAmount(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && handleAddFunds(goal.id)}
-                          autoFocus
-                        />
+                      {/* Segmented Control */}
+                      <div className="flex rounded-lg border border-gray-300 overflow-hidden">
                         <button
-                          onClick={() => handleAddFunds(goal.id)}
-                          className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                          className={`flex-1 py-2 px-4 font-medium transition-colors ${
+                            mode === 'add'
+                              ? 'bg-green-500 text-white'
+                              : 'bg-white text-gray-700 hover:bg-gray-50'
+                          }`}
+                          onClick={() => setMode('add')}
                         >
                           Add
                         </button>
                         <button
-                          onClick={() => {
-                            setShowAddFundsId(null);
-                            setAddFundsAmount('');
-                          }}
-                          className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                          className={`flex-1 py-2 px-4 font-medium transition-colors ${
+                            mode === 'withdraw'
+                              ? 'bg-orange-500 text-white'
+                              : 'bg-white text-gray-700 hover:bg-gray-50'
+                          } ${goal.currentAmount <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          onClick={() => setMode('withdraw')}
+                          disabled={goal.currentAmount <= 0}
                         >
-                          Cancel
+                          Withdraw
                         </button>
+                      </div>
+
+                      {/* Input Section */}
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <span className="absolute left-3 top-3 text-gray-500">$</span>
+                          <input
+                            type="number"
+                            placeholder={mode === 'add' ? 'Amount to add' : 'Amount to withdraw'}
+                            className="w-full pl-8 pr-3 py-3 border border-gray-200 rounded-lg focus:border-green-500 focus:outline-none"
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && handleSubmit(goal.id)}
+                            max={mode === 'withdraw' ? goal.currentAmount : undefined}
+                          />
+                        </div>
+
+                        {/* Quick Amount Chips */}
+                        <div className="flex gap-2 flex-wrap">
+                          {mode === 'add'
+                            ? [25, 50, 100, 250].map(val => (
+                                <button
+                                  key={val}
+                                  onClick={() => handleQuickAmount(goal.id, val)}
+                                  className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-sm transition-colors"
+                                >
+                                  ${val}
+                                </button>
+                              ))
+                            : ['25%', '50%', '75%', 'All'].map(val => (
+                                <button
+                                  key={val}
+                                  onClick={() => handleQuickAmount(goal.id, val)}
+                                  className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-sm transition-colors"
+                                  disabled={goal.currentAmount <= 0}
+                                >
+                                  {val}
+                                </button>
+                              ))
+                          }
+                        </div>
+
+                        {/* Helper Text */}
+                        <p className="text-xs text-gray-600">
+                          {mode === 'withdraw'
+                            ? `Available balance: $${goal.currentAmount.toFixed(2)}`
+                            : `Suggested monthly: $${requiredMonthlySavings.toFixed(0)}`
+                          }
+                        </p>
+
+                        {/* Submit Button */}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleSubmit(goal.id)}
+                            disabled={!amount || (mode === 'withdraw' && parseFloat(amount) > goal.currentAmount)}
+                            className={`flex-1 py-3 rounded-lg font-medium transition-colors ${
+                              mode === 'add'
+                                ? 'bg-green-500 hover:bg-green-600 text-white'
+                                : 'bg-orange-500 hover:bg-orange-600 text-white'
+                            } disabled:bg-gray-300 disabled:cursor-not-allowed`}
+                          >
+                            {mode === 'add' ? 'Add Funds' : 'Withdraw Funds'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setActiveGoalId(null);
+                              setAmount('');
+                              setMode('add');
+                            }}
+                            className="px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
                       </div>
                     </motion.div>
                   )}
