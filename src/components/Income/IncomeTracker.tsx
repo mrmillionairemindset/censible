@@ -10,6 +10,7 @@ const IncomeTracker: React.FC = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingIncome, setEditingIncome] = useState<IncomeSource | null>(null);
   const [showInactive, setShowInactive] = useState(false);
+  const [highlightedIncomeId, setHighlightedIncomeId] = useState<string | null>(null);
   const [newIncome, setNewIncome] = useState({
     source: '',
     amount: '',
@@ -85,8 +86,9 @@ const IncomeTracker: React.FC = () => {
       return;
     }
 
+    const incomeId = uuidv4();
     const income: IncomeSource = {
-      id: uuidv4(),
+      id: incomeId,
       source: newIncome.source,
       amount: parseFloat(newIncome.amount),
       frequency: newIncome.frequency,
@@ -97,6 +99,8 @@ const IncomeTracker: React.FC = () => {
     };
 
     setIncomeSources([...incomeSources, income]);
+
+    // Reset form
     setNewIncome({
       source: '',
       amount: '',
@@ -105,7 +109,22 @@ const IncomeTracker: React.FC = () => {
       description: ''
     });
     setShowAddForm(false);
-    toast.success('Income source added successfully!');
+
+    // Success feedback
+    const monthlyAmount = convertToMonthly(income.amount, income.frequency);
+    toast.success(`✅ New income added: ${income.source} ($${monthlyAmount.toFixed(0)}/month)`);
+
+    // Highlight animation
+    setHighlightedIncomeId(incomeId);
+    setTimeout(() => setHighlightedIncomeId(null), 1500);
+
+    // Auto-scroll to new income
+    setTimeout(() => {
+      const element = document.getElementById(`income-${incomeId}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
   };
 
   const handleEditIncome = (income: IncomeSource) => {
@@ -221,12 +240,15 @@ const IncomeTracker: React.FC = () => {
             const monthlyAmount = convertToMonthly(income.amount, income.frequency);
             return (
               <motion.div
+                id={`income-${income.id}`}
                 key={income.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 className={`border rounded-lg p-4 transition-all ${
-                  income.isActive
+                  highlightedIncomeId === income.id
+                    ? 'border-green-400 bg-gradient-to-r from-green-50 to-transparent animate-pulse'
+                    : income.isActive
                     ? 'border-gray-200 hover:border-gray-300 bg-white'
                     : 'border-gray-100 bg-gray-50 opacity-75'
                 }`}
@@ -308,96 +330,158 @@ const IncomeTracker: React.FC = () => {
         </button>
       </div>
 
-      {/* Add/Edit Income Form */}
+      {/* Add/Edit Income Modal */}
       <AnimatePresence>
         {showAddForm && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="border-t pt-6 overflow-hidden"
-          >
-            <h3 className="font-medium mb-4 text-gray-800">
-              {editingIncome ? 'Edit Income Source' : 'Add New Income Source'}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div className="md:col-span-2">
-                <input
-                  type="text"
-                  placeholder="Income source name (e.g., Software Engineer - TechCorp)"
-                  className="w-full p-3 border border-gray-200 rounded-lg focus:border-green-500 focus:outline-none"
-                  value={newIncome.source}
-                  onChange={(e) => setNewIncome({...newIncome, source: e.target.value})}
-                />
-              </div>
-              <div>
-                <input
-                  type="number"
-                  placeholder="Amount"
-                  className="w-full p-3 border border-gray-200 rounded-lg focus:border-green-500 focus:outline-none"
-                  value={newIncome.amount}
-                  onChange={(e) => setNewIncome({...newIncome, amount: e.target.value})}
-                />
-              </div>
-              <div>
-                <select
-                  className="w-full p-3 border border-gray-200 rounded-lg focus:border-green-500 focus:outline-none"
-                  value={newIncome.frequency}
-                  onChange={(e) => setNewIncome({...newIncome, frequency: e.target.value as IncomeFrequency})}
-                >
-                  {Object.entries(IncomeFrequencyLabels).map(([key, label]) => (
-                    <option key={key} value={key}>{label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <select
-                  className="w-full p-3 border border-gray-200 rounded-lg focus:border-green-500 focus:outline-none"
-                  value={newIncome.category}
-                  onChange={(e) => setNewIncome({...newIncome, category: e.target.value as IncomeSource['category']})}
-                >
-                  <option value="salary">💼 Salary</option>
-                  <option value="freelance">💻 Freelance</option>
-                  <option value="investments">📈 Investments</option>
-                  <option value="business">🏢 Business</option>
-                  <option value="other">💰 Other</option>
-                </select>
-              </div>
-              <div>
-                <input
-                  type="text"
-                  placeholder="Description (optional)"
-                  className="w-full p-3 border border-gray-200 rounded-lg focus:border-green-500 focus:outline-none"
-                  value={newIncome.description}
-                  onChange={(e) => setNewIncome({...newIncome, description: e.target.value})}
-                />
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={editingIncome ? handleUpdateIncome : handleAddIncome}
-                className="flex-1 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                setShowAddForm(false);
+                setEditingIncome(null);
+                setNewIncome({
+                  source: '',
+                  amount: '',
+                  frequency: 'monthly',
+                  category: 'salary',
+                  description: ''
+                });
+              }}
+              className="fixed inset-0 bg-black bg-opacity-50 z-40"
+            />
+
+            {/* Modal */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            >
+              <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
               >
-                {editingIncome ? 'Update Income' : 'Add Income'}
-              </button>
-              <button
-                onClick={() => {
-                  setShowAddForm(false);
-                  setEditingIncome(null);
-                  setNewIncome({
-                    source: '',
-                    amount: '',
-                    frequency: 'monthly',
-                    category: 'salary',
-                    description: ''
-                  });
-                }}
-                className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </motion.div>
+                <div className="p-6">
+                  <h2 className="text-2xl font-bold text-gray-800 mb-6">
+                    {editingIncome ? 'Edit Income Source' : 'Add New Income'}
+                  </h2>
+
+                  <div className="space-y-4">
+                    {/* Income Source Name */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Income Source *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g., Software Engineer - TechCorp"
+                        className="w-full p-3 border border-gray-200 rounded-lg focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                        value={newIncome.source}
+                        onChange={(e) => setNewIncome({...newIncome, source: e.target.value})}
+                        autoFocus
+                      />
+                    </div>
+
+                    {/* Amount */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Amount *
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="0.00"
+                        className="w-full p-3 border border-gray-200 rounded-lg focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                        value={newIncome.amount}
+                        onChange={(e) => setNewIncome({...newIncome, amount: e.target.value})}
+                      />
+                    </div>
+
+                    {/* Frequency */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Frequency
+                      </label>
+                      <select
+                        className="w-full p-3 border border-gray-200 rounded-lg focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                        value={newIncome.frequency}
+                        onChange={(e) => setNewIncome({...newIncome, frequency: e.target.value as IncomeFrequency})}
+                      >
+                        {Object.entries(IncomeFrequencyLabels).map(([key, label]) => (
+                          <option key={key} value={key}>{label}</option>
+                        ))}
+                      </select>
+                      {newIncome.frequency !== 'monthly' && newIncome.amount && (
+                        <p className="text-xs text-green-600 mt-1">
+                          ≈ ${convertToMonthly(parseFloat(newIncome.amount), newIncome.frequency).toFixed(0)}/month
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Category */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Category
+                      </label>
+                      <select
+                        className="w-full p-3 border border-gray-200 rounded-lg focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                        value={newIncome.category}
+                        onChange={(e) => setNewIncome({...newIncome, category: e.target.value as IncomeSource['category']})}
+                      >
+                        <option value="salary">💼 Salary</option>
+                        <option value="freelance">💻 Freelance</option>
+                        <option value="investments">📈 Investments</option>
+                        <option value="business">🏢 Business</option>
+                        <option value="other">💰 Other</option>
+                      </select>
+                    </div>
+
+                    {/* Description (Optional) */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Description (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Additional details..."
+                        className="w-full p-3 border border-gray-200 rounded-lg focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                        value={newIncome.description}
+                        onChange={(e) => setNewIncome({...newIncome, description: e.target.value})}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Buttons */}
+                  <div className="flex gap-3 mt-8">
+                    <button
+                      onClick={editingIncome ? handleUpdateIncome : handleAddIncome}
+                      className="flex-1 py-3 bg-[#27AE60] text-white rounded-lg hover:bg-[#229954] transition-colors font-medium"
+                    >
+                      {editingIncome ? 'Update Income' : 'Create Income'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowAddForm(false);
+                        setEditingIncome(null);
+                        setNewIncome({
+                          source: '',
+                          amount: '',
+                          frequency: 'monthly',
+                          category: 'salary',
+                          description: ''
+                        });
+                      }}
+                      className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </motion.div>
