@@ -20,6 +20,7 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
   const [activeGoalId, setActiveGoalId] = useState<string | null>(null);
   const [mode, setMode] = useState<'add' | 'withdraw'>('add');
   const [amount, setAmount] = useState('');
+  const [highlightedGoalId, setHighlightedGoalId] = useState<string | null>(null);
   const [newGoal, setNewGoal] = useState({
     name: '',
     targetAmount: '',
@@ -122,24 +123,39 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
   const totalProgress = totalTargetAmount > 0 ? (totalCurrentAmount / totalTargetAmount) * 100 : 0;
 
   const handleAddGoal = () => {
-    if (!newGoal.name || !newGoal.targetAmount || !newGoal.targetDate) {
+    if (!newGoal.name || !newGoal.targetAmount) {
       toast.error('Please fill in all required fields');
       return;
     }
 
+    const goalId = uuidv4();
+
+    // Auto-assign next priority if not set
+    const maxPriority = savingsGoals.reduce((max, g) => Math.max(max, g.priority), 0);
+    const priority = newGoal.priority || (maxPriority + 1);
+
+    // If user selected existing priority, bump others down
+    if (savingsGoals.some(g => g.priority === priority)) {
+      setSavingsGoals(prev => prev.map(g =>
+        g.priority >= priority ? { ...g, priority: g.priority + 1 } : g
+      ));
+    }
+
     const goal: SavingsGoal = {
-      id: uuidv4(),
+      id: goalId,
       name: newGoal.name,
       targetAmount: parseFloat(newGoal.targetAmount),
       currentAmount: 0,
-      targetDate: new Date(newGoal.targetDate),
+      targetDate: newGoal.targetDate ? new Date(newGoal.targetDate) : new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
       category: newGoal.category,
-      priority: newGoal.priority,
+      priority,
       description: newGoal.description || undefined,
       isActive: true
     };
 
-    setSavingsGoals([...savingsGoals, goal]);
+    setSavingsGoals(prev => [...prev, goal]);
+
+    // Reset form
     setNewGoal({
       name: '',
       targetAmount: '',
@@ -149,7 +165,21 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
       priority: 1
     });
     setShowAddForm(false);
-    toast.success('Savings goal added successfully!');
+
+    // Success feedback
+    toast.success(`✅ New goal added: ${goal.name} (Target $${goal.targetAmount.toFixed(0)})`);
+
+    // Highlight animation
+    setHighlightedGoalId(goalId);
+    setTimeout(() => setHighlightedGoalId(null), 1500);
+
+    // Auto-scroll to new goal
+    setTimeout(() => {
+      const element = document.getElementById(`goal-${goalId}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
   };
 
   const handleEditGoal = (goal: SavingsGoal) => {
@@ -344,11 +374,16 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
 
             return (
               <motion.div
+                id={`goal-${goal.id}`}
                 key={goal.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-all overflow-hidden space-y-4"
+                className={`border rounded-lg p-4 transition-all overflow-hidden space-y-4 ${
+                  highlightedGoalId === goal.id
+                    ? 'border-green-400 bg-gradient-to-r from-green-50 to-transparent animate-pulse'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
               >
                 {/* Header Row */}
                 <div className="flex justify-between items-start">
@@ -552,104 +587,155 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
         )}
       </div>
 
-      {/* Add/Edit Goal Form */}
+      {/* Add/Edit Goal Modal */}
       <AnimatePresence>
         {showAddForm && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="border-t pt-6 overflow-hidden"
-          >
-            <h3 className="font-medium mb-4 text-gray-800">
-              {editingGoal ? 'Edit Savings Goal' : 'Add New Savings Goal'}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <input
-                  type="text"
-                  placeholder="Goal name (e.g., Emergency Fund)"
-                  className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
-                  value={newGoal.name}
-                  onChange={(e) => setNewGoal({...newGoal, name: e.target.value})}
-                />
-              </div>
-              <div>
-                <input
-                  type="number"
-                  placeholder="Target amount"
-                  className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
-                  value={newGoal.targetAmount}
-                  onChange={(e) => setNewGoal({...newGoal, targetAmount: e.target.value})}
-                />
-              </div>
-              <div>
-                <input
-                  type="date"
-                  className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
-                  value={newGoal.targetDate}
-                  onChange={(e) => setNewGoal({...newGoal, targetDate: e.target.value})}
-                />
-              </div>
-              <div>
-                <select
-                  className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
-                  value={newGoal.category}
-                  onChange={(e) => setNewGoal({...newGoal, category: e.target.value as SavingsGoalCategory})}
-                >
-                  {Object.entries(SavingsGoalCategoryLabels).map(([key, label]) => (
-                    <option key={key} value={key}>
-                      {SavingsGoalCategoryIcons[key as SavingsGoalCategory]} {label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <input
-                  type="number"
-                  placeholder="Priority (1 = highest)"
-                  min="1"
-                  className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
-                  value={newGoal.priority}
-                  onChange={(e) => setNewGoal({...newGoal, priority: parseInt(e.target.value) || 1})}
-                />
-              </div>
-              <div>
-                <input
-                  type="text"
-                  placeholder="Description (optional)"
-                  className="w-full p-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
-                  value={newGoal.description}
-                  onChange={(e) => setNewGoal({...newGoal, description: e.target.value})}
-                />
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={editingGoal ? handleUpdateGoal : handleAddGoal}
-                className="flex-1 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                setShowAddForm(false);
+                setEditingGoal(null);
+                setNewGoal({
+                  name: '',
+                  targetAmount: '',
+                  targetDate: '',
+                  category: 'custom',
+                  description: '',
+                  priority: 1
+                });
+              }}
+              className="fixed inset-0 bg-black bg-opacity-50 z-40"
+            />
+
+            {/* Modal */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            >
+              <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
               >
-                {editingGoal ? 'Update Goal' : 'Add Goal'}
-              </button>
-              <button
-                onClick={() => {
-                  setShowAddForm(false);
-                  setEditingGoal(null);
-                  setNewGoal({
-                    name: '',
-                    targetAmount: '',
-                    targetDate: '',
-                    category: 'custom',
-                    description: '',
-                    priority: 1
-                  });
-                }}
-                className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </motion.div>
+                <div className="p-6">
+                  <h2 className="text-2xl font-bold text-gray-800 mb-6">
+                    {editingGoal ? 'Edit Savings Goal' : 'Create New Goal'}
+                  </h2>
+
+                  <div className="space-y-4">
+                    {/* Goal Name */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Goal Name *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g., Emergency Fund"
+                        className="w-full p-3 border border-gray-200 rounded-lg focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                        value={newGoal.name}
+                        onChange={(e) => setNewGoal({...newGoal, name: e.target.value})}
+                        autoFocus
+                      />
+                    </div>
+
+                    {/* Target Amount */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Target Amount *
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="0.00"
+                        className="w-full p-3 border border-gray-200 rounded-lg focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                        value={newGoal.targetAmount}
+                        onChange={(e) => setNewGoal({...newGoal, targetAmount: e.target.value})}
+                      />
+                    </div>
+
+                    {/* Priority */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Priority
+                      </label>
+                      <select
+                        className="w-full p-3 border border-gray-200 rounded-lg focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                        value={newGoal.priority}
+                        onChange={(e) => setNewGoal({...newGoal, priority: parseInt(e.target.value) || 1})}
+                      >
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
+                          <option key={num} value={num}>Priority {num}</option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-gray-500 mt-1">Lower numbers have higher priority</p>
+                    </div>
+
+                    {/* Target Date (Optional) */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Target Date (Optional)
+                      </label>
+                      <input
+                        type="date"
+                        className="w-full p-3 border border-gray-200 rounded-lg focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                        value={newGoal.targetDate}
+                        onChange={(e) => setNewGoal({...newGoal, targetDate: e.target.value})}
+                      />
+                    </div>
+
+                    {/* Category */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Category
+                      </label>
+                      <select
+                        className="w-full p-3 border border-gray-200 rounded-lg focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                        value={newGoal.category}
+                        onChange={(e) => setNewGoal({...newGoal, category: e.target.value as SavingsGoalCategory})}
+                      >
+                        {Object.entries(SavingsGoalCategoryLabels).map(([key, label]) => (
+                          <option key={key} value={key}>
+                            {SavingsGoalCategoryIcons[key as SavingsGoalCategory]} {label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Buttons */}
+                  <div className="flex gap-3 mt-8">
+                    <button
+                      onClick={editingGoal ? handleUpdateGoal : handleAddGoal}
+                      className="flex-1 py-3 bg-[#27AE60] text-white rounded-lg hover:bg-[#229954] transition-colors font-medium"
+                    >
+                      {editingGoal ? 'Update Goal' : 'Create Goal'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowAddForm(false);
+                        setEditingGoal(null);
+                        setNewGoal({
+                          name: '',
+                          targetAmount: '',
+                          targetDate: '',
+                          category: 'custom',
+                          description: '',
+                          priority: 1
+                        });
+                      }}
+                      className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </motion.div>
