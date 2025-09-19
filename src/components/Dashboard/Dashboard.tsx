@@ -51,15 +51,15 @@ const Dashboard: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
       <div className="bg-white shadow-sm border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="max-w-7xl mx-auto px-4 py-4">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             className="flex items-center justify-between"
           >
             <div className="flex flex-col items-center">
-              <img src="/logo.png" alt="Centsible Logo" className="h-20 w-auto" />
-              <p className="text-sm text-gray-600 -mt-2 text-center">
+              <img src="/logo.png" alt="Centsible Logo" className="h-16 w-auto" />
+              <p className="text-[10px] font-bold text-gray-600 -mt-2 text-right self-end">
                 AI-powered budget clarity
               </p>
             </div>
