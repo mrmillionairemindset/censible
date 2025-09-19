@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { Settings } from 'lucide-react';
 import { useBudget } from '../../contexts/BudgetContext';
 import SpendingDonutChart from './SpendingDonutChart';
 import CategoryCard from './CategoryCard';
@@ -8,16 +9,18 @@ import FloatingActionButton from '../Layout/FloatingActionButton';
 import ReceiptUploader from '../Scanner/ReceiptUploader';
 import QuickExpenseModal from '../Transactions/QuickExpenseModal';
 import BillManager from '../Bills/BillManager';
+import BudgetSettings from '../Budget/BudgetSettings';
 import { CategoryType } from '../../types';
 import { staggerContainer, staggerItem } from '../../utils/animations';
 import { useBillNotifications } from '../../hooks/useBillNotifications';
 
 const Dashboard: React.FC = () => {
-  const { budget, transactions, setCategoryFilter, selectedCategory } = useBudget();
+  const { budget, transactions, setCategoryFilter, selectedCategory, updateCategoryBudgets } = useBudget();
   const { getUrgentBillsCount } = useBillNotifications();
   const [showReceiptUploader, setShowReceiptUploader] = useState(false);
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [showBillManager, setShowBillManager] = useState(false);
+  const [showBudgetSettings, setShowBudgetSettings] = useState(false);
 
   // Get recent transactions count for each category
   const getRecentTransactionsCount = (category: CategoryType) => {
@@ -51,26 +54,39 @@ const Dashboard: React.FC = () => {
               </p>
             </div>
 
-            {/* Quick Stats */}
-            <div className="hidden md:flex gap-6">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-mint-600">
-                  ${budget.totalBudget.toFixed(0)}
-                </p>
-                <p className="text-xs text-gray-500">Monthly Budget</p>
+            {/* Quick Stats & Settings */}
+            <div className="flex items-center gap-4">
+              <div className="hidden md:flex gap-6">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-mint-600">
+                    ${budget.totalBudget.toFixed(0)}
+                  </p>
+                  <p className="text-xs text-gray-500">Monthly Budget</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-gray-800">
+                    {transactions.length}
+                  </p>
+                  <p className="text-xs text-gray-500">Transactions</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-gold-600">
+                    {budget.categories.length}
+                  </p>
+                  <p className="text-xs text-gray-500">Categories</p>
+                </div>
               </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-gray-800">
-                  {transactions.length}
-                </p>
-                <p className="text-xs text-gray-500">Transactions</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-gold-600">
-                  {budget.categories.length}
-                </p>
-                <p className="text-xs text-gray-500">Categories</p>
-              </div>
+
+              {/* Settings Button */}
+              <motion.button
+                onClick={() => setShowBudgetSettings(true)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="p-3 bg-white rounded-xl shadow-soft hover:shadow-md transition-all duration-200 border border-gray-100"
+                aria-label="Budget Settings"
+              >
+                <Settings size={20} className="text-gray-600" />
+              </motion.button>
             </div>
           </motion.div>
         </div>
@@ -211,6 +227,17 @@ const Dashboard: React.FC = () => {
       {showBillManager && (
         <BillManager
           onClose={() => setShowBillManager(false)}
+        />
+      )}
+
+      {showBudgetSettings && (
+        <BudgetSettings
+          categories={budget.categories}
+          totalBudget={budget.totalBudget}
+          onSave={(updatedCategories, newTotalBudget) => {
+            updateCategoryBudgets(updatedCategories, newTotalBudget);
+          }}
+          onClose={() => setShowBudgetSettings(false)}
         />
       )}
 

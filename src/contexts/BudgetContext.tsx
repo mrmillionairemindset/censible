@@ -19,7 +19,8 @@ type BudgetAction =
   | { type: 'SET_CATEGORY_FILTER'; payload: CategoryType | undefined }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | undefined }
-  | { type: 'UPDATE_CATEGORY_SPENT'; payload: { category: CategoryType; amount: number } };
+  | { type: 'UPDATE_CATEGORY_SPENT'; payload: { category: CategoryType; amount: number } }
+  | { type: 'UPDATE_CATEGORY_BUDGETS'; payload: { categories: BudgetCategory[]; totalBudget: number } };
 
 const defaultCategories: BudgetCategory[] = [
   { category: 'groceries', allocated: 500, spent: 0, color: CategoryColors.groceries, icon: CategoryIcons.groceries },
@@ -147,6 +148,24 @@ function budgetReducer(state: BudgetState, action: BudgetAction): BudgetState {
         budget: { ...state.budget, categories: updatedCategories },
       };
 
+    case 'UPDATE_CATEGORY_BUDGETS': {
+      const { categories, totalBudget } = action.payload;
+
+      // Save to localStorage immediately
+      const updatedBudget = {
+        ...state.budget,
+        categories,
+        totalBudget,
+      };
+
+      localStorage.setItem('centsible_budget', JSON.stringify(updatedBudget));
+
+      return {
+        ...state,
+        budget: updatedBudget,
+      };
+    }
+
     default:
       return state;
   }
@@ -161,6 +180,7 @@ interface BudgetContextType extends BudgetState {
   getTotalSpent: () => number;
   getRemainingBudget: () => number;
   getCategorySpending: (category: CategoryType) => { spent: number; allocated: number; percentage: number };
+  updateCategoryBudgets: (categories: BudgetCategory[], totalBudget: number) => void;
 }
 
 const BudgetContext = createContext<BudgetContextType | undefined>(undefined);
@@ -280,6 +300,10 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
     return { spent: cat.spent, allocated: cat.allocated, percentage };
   };
 
+  const updateCategoryBudgets = (categories: BudgetCategory[], totalBudget: number) => {
+    dispatch({ type: 'UPDATE_CATEGORY_BUDGETS', payload: { categories, totalBudget } });
+  };
+
   const value: BudgetContextType = {
     ...state,
     addTransaction,
@@ -290,6 +314,7 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
     getTotalSpent,
     getRemainingBudget,
     getCategorySpending,
+    updateCategoryBudgets,
   };
 
   return <BudgetContext.Provider value={value}>{children}</BudgetContext.Provider>;
