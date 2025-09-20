@@ -102,12 +102,14 @@ export const calculateFinancialHealth = (
   else if (incomeExpenseRatio >= 1.1) score += 15;
   else if (incomeExpenseRatio >= 1.0) score += 10;
 
-  // Savings rate (25 points max)
-  if (savingsRate >= 20) score += 25;
-  else if (savingsRate >= 15) score += 20;
-  else if (savingsRate >= 10) score += 15;
-  else if (savingsRate >= 5) score += 10;
-  else if (savingsRate > 0) score += 5;
+  // Savings rate (35 points max - with bonus for exceptional performance)
+  if (savingsRate >= 50) score += 35; // Exceptional: 50%+ savings rate
+  else if (savingsRate >= 30) score += 30; // Outstanding: 30%+ savings rate
+  else if (savingsRate >= 20) score += 25; // Excellent: 20%+ savings rate
+  else if (savingsRate >= 15) score += 20; // Very good: 15%+ savings rate
+  else if (savingsRate >= 10) score += 15; // Good: 10%+ savings rate
+  else if (savingsRate >= 5) score += 10; // Fair: 5%+ savings rate
+  else if (savingsRate > 0) score += 5; // Basic: Any savings
 
   // Emergency fund coverage (25 points max)
   if (emergencyFundWeeks >= 26) score += 25; // 6+ months
@@ -122,41 +124,64 @@ export const calculateFinancialHealth = (
   else if (activeGoals >= 2) score += 8;
   else if (activeGoals >= 1) score += 5;
 
-  // Net positive cash flow (10 points max)
-  if (financialSummary.netCashFlow >= totalMonthlyIncome * 0.1) score += 10; // 10%+ positive
-  else if (financialSummary.netCashFlow >= totalMonthlyIncome * 0.05) score += 8; // 5%+ positive
-  else if (financialSummary.netCashFlow > 0) score += 5; // Any positive
-  else if (financialSummary.netCashFlow >= totalMonthlyIncome * -0.05) score += 2; // Small negative
+  // Net positive cash flow (15 points max - with bonus for exceptional performance)
+  if (financialSummary.netCashFlow >= totalMonthlyIncome * 0.5) score += 15; // 50%+ positive (exceptional)
+  else if (financialSummary.netCashFlow >= totalMonthlyIncome * 0.3) score += 12; // 30%+ positive (outstanding)
+  else if (financialSummary.netCashFlow >= totalMonthlyIncome * 0.2) score += 10; // 20%+ positive (excellent)
+  else if (financialSummary.netCashFlow >= totalMonthlyIncome * 0.1) score += 8; // 10%+ positive (very good)
+  else if (financialSummary.netCashFlow >= totalMonthlyIncome * 0.05) score += 6; // 5%+ positive (good)
+  else if (financialSummary.netCashFlow > 0) score += 3; // Any positive (fair)
+  else if (financialSummary.netCashFlow >= totalMonthlyIncome * -0.05) score += 1; // Small negative
 
   // Generate recommendations
   const recommendations: string[] = [];
 
-  if (incomeExpenseRatio < 1.2) {
-    recommendations.push('Consider reducing expenses or increasing income to improve your financial stability.');
+  // High performer recommendations (80%+ score)
+  if (score >= 85) {
+    if (savingsRate > 50) {
+      recommendations.push('Outstanding financial discipline! Consider diversifying investments or exploring tax-advantaged accounts.');
+    }
+    if (emergencyFundWeeks < 26) {
+      recommendations.push('Consider building your emergency fund to 6+ months for ultimate security.');
+    }
+    if (activeGoals < 2) {
+      recommendations.push('With your excellent savings rate, consider setting ambitious long-term financial goals.');
+    }
+  }
+  // Standard recommendations for those needing improvement
+  else {
+    if (incomeExpenseRatio < 1.2) {
+      recommendations.push('Consider reducing expenses or increasing income to improve your financial stability.');
+    }
+
+    if (savingsRate < 10) {
+      recommendations.push('Try to save at least 10% of your income for long-term financial health.');
+    }
+
+    if (emergencyFundWeeks < 13) {
+      recommendations.push('Build an emergency fund covering 3-6 months of expenses for financial security.');
+    }
+
+    if (activeGoals === 0) {
+      recommendations.push('Set specific savings goals to stay motivated and track your progress.');
+    }
+
+    if (financialSummary.netCashFlow < 0) {
+      recommendations.push('Your expenses exceed your income. Focus on budgeting and expense reduction.');
+    }
+
+    if (totalMonthlyExpenses > totalMonthlyIncome * 0.8) {
+      recommendations.push('Your expenses are quite high relative to income. Look for areas to optimize spending.');
+    }
   }
 
-  if (savingsRate < 10) {
-    recommendations.push('Try to save at least 10% of your income for long-term financial health.');
-  }
-
-  if (emergencyFundWeeks < 13) {
-    recommendations.push('Build an emergency fund covering 3-6 months of expenses for financial security.');
-  }
-
-  if (activeGoals === 0) {
-    recommendations.push('Set specific savings goals to stay motivated and track your progress.');
-  }
-
-  if (financialSummary.netCashFlow < 0) {
-    recommendations.push('Your expenses exceed your income. Focus on budgeting and expense reduction.');
-  }
-
-  if (totalMonthlyExpenses > totalMonthlyIncome * 0.8) {
-    recommendations.push('Your expenses are quite high relative to income. Look for areas to optimize spending.');
+  // If no recommendations were added, they're doing great
+  if (recommendations.length === 0) {
+    recommendations.push('Excellent financial management! Keep up the great work.');
   }
 
   return {
-    score: Math.min(Math.max(score, 0), 100), // Clamp between 0-100
+    score: Math.min(Math.max(score, 0), 110), // Allow scores above 100 for exceptional performance
     incomeExpenseRatio,
     savingsRate,
     emergencyFundWeeks,

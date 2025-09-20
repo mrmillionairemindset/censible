@@ -21,28 +21,36 @@ const FinancialHealth: React.FC<FinancialHealthProps> = ({
   });
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-yellow-600';
+    if (score >= 100) return 'text-purple-600';
+    if (score >= 85) return 'text-emerald-600';
+    if (score >= 70) return 'text-green-600';
+    if (score >= 55) return 'text-yellow-600';
     if (score >= 40) return 'text-orange-600';
     return 'text-red-600';
   };
 
   const getScoreBackground = (score: number) => {
-    if (score >= 80) return 'from-green-400 to-green-600';
-    if (score >= 60) return 'from-yellow-400 to-yellow-600';
+    if (score >= 100) return 'from-purple-400 to-purple-600';
+    if (score >= 85) return 'from-emerald-400 to-emerald-600';
+    if (score >= 70) return 'from-green-400 to-green-600';
+    if (score >= 55) return 'from-yellow-400 to-yellow-600';
     if (score >= 40) return 'from-orange-400 to-orange-600';
     return 'from-red-400 to-red-600';
   };
 
   const getHealthIcon = (score: number) => {
-    if (score >= 80) return <CheckCircle className="w-5 h-5 text-green-600" />;
-    if (score >= 60) return <Info className="w-5 h-5 text-yellow-600" />;
+    if (score >= 100) return <CheckCircle className="w-5 h-5 text-purple-600" />;
+    if (score >= 85) return <CheckCircle className="w-5 h-5 text-emerald-600" />;
+    if (score >= 70) return <CheckCircle className="w-5 h-5 text-green-600" />;
+    if (score >= 55) return <Info className="w-5 h-5 text-yellow-600" />;
     return <AlertTriangle className="w-5 h-5 text-red-600" />;
   };
 
   const getHealthLabel = (score: number) => {
-    if (score >= 80) return 'Excellent';
-    if (score >= 60) return 'Good';
+    if (score >= 100) return 'Exceptional';
+    if (score >= 85) return 'Outstanding';
+    if (score >= 70) return 'Excellent';
+    if (score >= 55) return 'Good';
     if (score >= 40) return 'Fair';
     return 'Needs Improvement';
   };
