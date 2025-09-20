@@ -5,8 +5,11 @@ import { BudgetProvider } from './contexts/BudgetContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Dashboard from './components/Dashboard/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
+import Footer from './components/Footer';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
 import { generateDemoData } from './utils/demoData';
 import './App.css';
 
@@ -55,24 +58,31 @@ const DashboardWrapper: React.FC = () => {
 const AppContent: React.FC = () => {
 
   return (
-    <Routes>
-      <Route path="/login" element={
-        <AuthRoute>
-          <Login />
-        </AuthRoute>
-      } />
-      <Route path="/signup" element={
-        <AuthRoute>
-          <Signup />
-        </AuthRoute>
-      } />
-      <Route path="/dashboard" element={
-        <ProtectedRoute>
-          <DashboardWrapper />
-        </ProtectedRoute>
-      } />
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-    </Routes>
+    <div className="min-h-screen flex flex-col">
+      <div className="flex-1">
+        <Routes>
+          <Route path="/login" element={
+            <AuthRoute>
+              <Login />
+            </AuthRoute>
+          } />
+          <Route path="/signup" element={
+            <AuthRoute>
+              <Signup />
+            </AuthRoute>
+          } />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <DashboardWrapper />
+            </ProtectedRoute>
+          } />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </div>
+      <Footer />
+    </div>
   );
 };
 
