@@ -102,21 +102,26 @@ export const calculateFinancialHealth = (
   else if (incomeExpenseRatio >= 1.1) score += 15;
   else if (incomeExpenseRatio >= 1.0) score += 10;
 
-  // Savings rate (35 points max - with bonus for exceptional performance)
-  if (savingsRate >= 50) score += 35; // Exceptional: 50%+ savings rate
-  else if (savingsRate >= 30) score += 30; // Outstanding: 30%+ savings rate
-  else if (savingsRate >= 20) score += 25; // Excellent: 20%+ savings rate
-  else if (savingsRate >= 15) score += 20; // Very good: 15%+ savings rate
-  else if (savingsRate >= 10) score += 15; // Good: 10%+ savings rate
-  else if (savingsRate >= 5) score += 10; // Fair: 5%+ savings rate
-  else if (savingsRate > 0) score += 5; // Basic: Any savings
+  // Savings rate (30 points max - realistic for normal families)
+  if (savingsRate >= 20) score += 30; // Exceptional: 20%+ savings rate (rare!)
+  else if (savingsRate >= 15) score += 26; // Excellent: 15%+ savings rate
+  else if (savingsRate >= 12) score += 22; // Very good: 12%+ savings rate
+  else if (savingsRate >= 10) score += 18; // Good: 10%+ savings rate
+  else if (savingsRate >= 7) score += 14; // Fair: 7%+ savings rate
+  else if (savingsRate >= 5) score += 10; // Getting by: 5%+ savings rate
+  else if (savingsRate >= 3) score += 6; // Struggling: 3%+ savings rate
+  else if (savingsRate > 0) score += 3; // Minimal: Any savings
 
-  // Emergency fund coverage (25 points max)
-  if (emergencyFundWeeks >= 26) score += 25; // 6+ months
-  else if (emergencyFundWeeks >= 13) score += 20; // 3-6 months
-  else if (emergencyFundWeeks >= 8) score += 15; // 2-3 months
-  else if (emergencyFundWeeks >= 4) score += 10; // 1-2 months
-  else if (emergencyFundWeeks > 0) score += 5;
+  // Bonus points for extraordinarily rare performance (beyond normal families)
+  if (savingsRate >= 30) score += 5; // Extra rare bonus
+  if (savingsRate >= 50) score += 5; // Extremely rare bonus
+
+  // Emergency fund coverage (25 points max - 6 months is gold standard)
+  if (emergencyFundWeeks >= 26) score += 25; // 6+ months (gold standard)
+  else if (emergencyFundWeeks >= 13) score += 15; // 3-6 months (good but not ideal)
+  else if (emergencyFundWeeks >= 8) score += 10; // 2-3 months
+  else if (emergencyFundWeeks >= 4) score += 6; // 1-2 months
+  else if (emergencyFundWeeks > 0) score += 3; // Any amount
 
   // Having savings goals (10 points max)
   const activeGoals = savingsGoals.filter(goal => goal.isActive).length;
@@ -124,14 +129,23 @@ export const calculateFinancialHealth = (
   else if (activeGoals >= 2) score += 8;
   else if (activeGoals >= 1) score += 5;
 
-  // Net positive cash flow (15 points max - with bonus for exceptional performance)
-  if (financialSummary.netCashFlow >= totalMonthlyIncome * 0.5) score += 15; // 50%+ positive (exceptional)
-  else if (financialSummary.netCashFlow >= totalMonthlyIncome * 0.3) score += 12; // 30%+ positive (outstanding)
-  else if (financialSummary.netCashFlow >= totalMonthlyIncome * 0.2) score += 10; // 20%+ positive (excellent)
-  else if (financialSummary.netCashFlow >= totalMonthlyIncome * 0.1) score += 8; // 10%+ positive (very good)
-  else if (financialSummary.netCashFlow >= totalMonthlyIncome * 0.05) score += 6; // 5%+ positive (good)
-  else if (financialSummary.netCashFlow > 0) score += 3; // Any positive (fair)
+  // Bonus for having an emergency fund goal (5 points max)
+  const hasEmergencyFund = savingsGoals.some(goal => goal.category === 'emergency-fund' && goal.isActive);
+  if (hasEmergencyFund) {
+    score += 5; // Reward the planning behavior itself
+  }
+
+  // Net positive cash flow (15 points max - realistic for normal families)
+  if (financialSummary.netCashFlow >= totalMonthlyIncome * 0.25) score += 15; // 25%+ positive (exceptional)
+  else if (financialSummary.netCashFlow >= totalMonthlyIncome * 0.20) score += 13; // 20%+ positive (excellent)
+  else if (financialSummary.netCashFlow >= totalMonthlyIncome * 0.15) score += 11; // 15%+ positive (very good)
+  else if (financialSummary.netCashFlow >= totalMonthlyIncome * 0.10) score += 9; // 10%+ positive (good)
+  else if (financialSummary.netCashFlow >= totalMonthlyIncome * 0.05) score += 6; // 5%+ positive (fair)
+  else if (financialSummary.netCashFlow > 0) score += 3; // Any positive (getting by)
   else if (financialSummary.netCashFlow >= totalMonthlyIncome * -0.05) score += 1; // Small negative
+
+  // Bonus for extraordinarily rare performance
+  if (financialSummary.netCashFlow >= totalMonthlyIncome * 0.50) score += 5; // Extremely rare bonus
 
   // Generate recommendations
   const recommendations: string[] = [];
@@ -180,8 +194,12 @@ export const calculateFinancialHealth = (
     recommendations.push('Excellent financial management! Keep up the great work.');
   }
 
+  // Requirement for 100% score: Must have at least 3 months emergency fund
+  const hasMinimumEmergencyFund = emergencyFundWeeks >= 13; // 3 months = ~13 weeks
+  const finalScore = hasMinimumEmergencyFund ? Math.min(score, 100) : Math.min(score, 95);
+
   return {
-    score: Math.min(Math.max(score, 0), 110), // Allow scores above 100 for exceptional performance
+    score: Math.max(finalScore, 0), // Cap at 100 only if 3+ months emergency fund, otherwise max 95
     incomeExpenseRatio,
     savingsRate,
     emergencyFundWeeks,

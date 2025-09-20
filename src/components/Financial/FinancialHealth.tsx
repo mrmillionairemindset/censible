@@ -21,37 +21,38 @@ const FinancialHealth: React.FC<FinancialHealthProps> = ({
   });
 
   const getScoreColor = (score: number) => {
-    if (score >= 100) return 'text-purple-600';
-    if (score >= 85) return 'text-emerald-600';
-    if (score >= 70) return 'text-green-600';
-    if (score >= 55) return 'text-yellow-600';
-    if (score >= 40) return 'text-orange-600';
+    if (score >= 90) return 'text-purple-600';
+    if (score >= 75) return 'text-emerald-600';
+    if (score >= 60) return 'text-green-600';
+    if (score >= 45) return 'text-yellow-600';
+    if (score >= 30) return 'text-orange-600';
     return 'text-red-600';
   };
 
   const getScoreBackground = (score: number) => {
-    if (score >= 100) return 'from-purple-400 to-purple-600';
-    if (score >= 85) return 'from-emerald-400 to-emerald-600';
-    if (score >= 70) return 'from-green-400 to-green-600';
-    if (score >= 55) return 'from-yellow-400 to-yellow-600';
-    if (score >= 40) return 'from-orange-400 to-orange-600';
+    if (score >= 90) return 'from-purple-400 to-purple-600';
+    if (score >= 75) return 'from-emerald-400 to-emerald-600';
+    if (score >= 60) return 'from-green-400 to-green-600';
+    if (score >= 45) return 'from-yellow-400 to-yellow-600';
+    if (score >= 30) return 'from-orange-400 to-orange-600';
     return 'from-red-400 to-red-600';
   };
 
   const getHealthIcon = (score: number) => {
-    if (score >= 100) return <CheckCircle className="w-5 h-5 text-purple-600" />;
-    if (score >= 85) return <CheckCircle className="w-5 h-5 text-emerald-600" />;
-    if (score >= 70) return <CheckCircle className="w-5 h-5 text-green-600" />;
-    if (score >= 55) return <Info className="w-5 h-5 text-yellow-600" />;
+    if (score >= 90) return <CheckCircle className="w-5 h-5 text-purple-600" />;
+    if (score >= 75) return <CheckCircle className="w-5 h-5 text-emerald-600" />;
+    if (score >= 60) return <CheckCircle className="w-5 h-5 text-green-600" />;
+    if (score >= 45) return <Info className="w-5 h-5 text-yellow-600" />;
+    if (score >= 30) return <Info className="w-5 h-5 text-orange-600" />;
     return <AlertTriangle className="w-5 h-5 text-red-600" />;
   };
 
   const getHealthLabel = (score: number) => {
-    if (score >= 100) return 'Exceptional';
-    if (score >= 85) return 'Outstanding';
-    if (score >= 70) return 'Excellent';
-    if (score >= 55) return 'Good';
-    if (score >= 40) return 'Fair';
+    if (score >= 90) return 'Exceptional';
+    if (score >= 75) return 'Outstanding';
+    if (score >= 60) return 'Excellent';
+    if (score >= 45) return 'Good';
+    if (score >= 30) return 'Fair';
     return 'Needs Improvement';
   };
 
@@ -95,13 +96,47 @@ const FinancialHealth: React.FC<FinancialHealthProps> = ({
               fill="transparent"
               strokeLinecap="round"
               initial={{ strokeDasharray: "0 251.2" }}
-              animate={{ strokeDasharray: `${(financialHealth.score / 100) * 251.2} 251.2` }}
+              animate={{ strokeDasharray: `${Math.min(financialHealth.score / 100, 1.1) * 251.2} 251.2` }}
               transition={{ duration: 2, ease: "easeOut" }}
             />
             <defs>
               <linearGradient id="healthGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" className={`stop-color-${getScoreBackground(financialHealth.score).split('-')[1]}-400`} />
-                <stop offset="100%" className={`stop-color-${getScoreBackground(financialHealth.score).split('-')[3]}-600`} />
+                {financialHealth.score >= 90 && (
+                  <>
+                    <stop offset="0%" stopColor="#a855f7" />
+                    <stop offset="100%" stopColor="#7c3aed" />
+                  </>
+                )}
+                {financialHealth.score >= 75 && financialHealth.score < 90 && (
+                  <>
+                    <stop offset="0%" stopColor="#34d399" />
+                    <stop offset="100%" stopColor="#059669" />
+                  </>
+                )}
+                {financialHealth.score >= 60 && financialHealth.score < 75 && (
+                  <>
+                    <stop offset="0%" stopColor="#4ade80" />
+                    <stop offset="100%" stopColor="#16a34a" />
+                  </>
+                )}
+                {financialHealth.score >= 45 && financialHealth.score < 60 && (
+                  <>
+                    <stop offset="0%" stopColor="#facc15" />
+                    <stop offset="100%" stopColor="#ca8a04" />
+                  </>
+                )}
+                {financialHealth.score >= 30 && financialHealth.score < 45 && (
+                  <>
+                    <stop offset="0%" stopColor="#fb923c" />
+                    <stop offset="100%" stopColor="#ea580c" />
+                  </>
+                )}
+                {financialHealth.score < 30 && (
+                  <>
+                    <stop offset="0%" stopColor="#f87171" />
+                    <stop offset="100%" stopColor="#dc2626" />
+                  </>
+                )}
               </linearGradient>
             </defs>
           </svg>

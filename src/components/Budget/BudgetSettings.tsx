@@ -63,16 +63,16 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({
 
   // Predefined category suggestions
   const suggestedCategories: SuggestedCategory[] = [
-    { name: 'Debt Payments', icon: '💳', budget: 500 },
-    { name: 'Credit Cards', icon: '💰', budget: 200 },
-    { name: 'Giving/Charity', icon: '❤️', budget: 100 },
-    { name: 'Savings', icon: '🏦', budget: 500 },
-    { name: 'Insurance', icon: '🛡️', budget: 200 },
-    { name: 'Medical', icon: '🏥', budget: 150 },
-    { name: 'Education', icon: '📚', budget: 100 },
-    { name: 'Personal Care', icon: '✨', budget: 75 },
-    { name: 'Investments', icon: '📈', budget: 300 },
-    { name: 'Subscriptions', icon: '📱', budget: 50 }
+    { name: 'Debt Payments', icon: '💳', budget: 0 },
+    { name: 'Credit Cards', icon: '💰', budget: 0 },
+    { name: 'Giving/Charity', icon: '❤️', budget: 0 },
+    { name: 'Savings', icon: '🏦', budget: 0 },
+    { name: 'Insurance', icon: '🛡️', budget: 0 },
+    { name: 'Medical', icon: '🏥', budget: 0 },
+    { name: 'Education', icon: '📚', budget: 0 },
+    { name: 'Personal Care', icon: '✨', budget: 0 },
+    { name: 'Investments', icon: '📈', budget: 0 },
+    { name: 'Subscriptions', icon: '📱', budget: 0 }
   ];
 
   const handleBudgetChange = (category: CategoryType, value: string) => {
@@ -164,76 +164,19 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({
       case 'tight':
         presetCategories = budgetCategories.map(cat => ({
           ...cat,
-          allocated: {
-            groceries: 250,
-            housing: 800,
-            transportation: 150,
-            shopping: 100,
-            entertainment: 75,
-            dining: 100,
-            utilities: 120,
-            'debt-payments': 200,
-            'credit-cards': 150,
-            'giving-charity': 50,
-            savings: 200,
-            insurance: 150,
-            medical: 100,
-            education: 50,
-            'personal-care': 50,
-            investments: 100,
-            subscriptions: 75,
-            other: 80
-          }[cat.category] || 100
+          allocated: 0
         }));
         break;
       case 'moderate':
         presetCategories = budgetCategories.map(cat => ({
           ...cat,
-          allocated: {
-            groceries: 400,
-            housing: 1200,
-            transportation: 250,
-            shopping: 200,
-            entertainment: 150,
-            dining: 200,
-            utilities: 180,
-            'debt-payments': 300,
-            'credit-cards': 250,
-            'giving-charity': 100,
-            savings: 350,
-            insurance: 200,
-            medical: 150,
-            education: 100,
-            'personal-care': 100,
-            investments: 200,
-            subscriptions: 125,
-            other: 150
-          }[cat.category] || 150
+          allocated: 0
         }));
         break;
       case 'comfortable':
         presetCategories = budgetCategories.map(cat => ({
           ...cat,
-          allocated: {
-            groceries: 600,
-            housing: 1800,
-            transportation: 400,
-            shopping: 350,
-            entertainment: 300,
-            dining: 350,
-            utilities: 250,
-            'debt-payments': 500,
-            'credit-cards': 400,
-            'giving-charity': 200,
-            savings: 600,
-            insurance: 300,
-            medical: 250,
-            education: 200,
-            'personal-care': 150,
-            investments: 400,
-            subscriptions: 200,
-            other: 200
-          }[cat.category] || 200
+          allocated: 0
         }));
         break;
       default:
@@ -299,7 +242,8 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                   <span className="text-gray-500 text-sm">$</span>
                   <input
                     type="number"
-                    value={category.allocated}
+                    value={category.allocated === 0 ? '' : category.allocated}
+                    placeholder="0"
                     onChange={(e) => handleBudgetChange(category.category, e.target.value)}
                     className="w-24 px-2 py-1 border border-gray-300 rounded text-right font-medium focus:border-mint-500 focus:outline-none focus:ring-1 focus:ring-mint-500"
                     min="0"
@@ -357,8 +301,8 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                 />
                 <input
                   type="number"
-                  placeholder="Budget"
-                  value={newCategory.allocated}
+                  placeholder="0"
+                  value={newCategory.allocated === 0 ? '' : newCategory.allocated}
                   onChange={(e) => setNewCategory({...newCategory, allocated: parseFloat(e.target.value) || 0})}
                   className="w-24 px-2 py-1 border border-mint-300 rounded focus:border-mint-500 focus:outline-none"
                   min="0"
