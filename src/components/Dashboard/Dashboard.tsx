@@ -282,6 +282,13 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* Disclaimer */}
+      <div className="text-center py-4">
+        <p className="text-xs text-gray-500">
+          For personal budgeting only. Not professional financial advice.
+        </p>
+      </div>
+
       {/* Floating Action Button */}
       <FloatingActionButton
         onQuickScan={() => setShowReceiptUploader(true)}
