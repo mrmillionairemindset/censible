@@ -71,6 +71,17 @@ export const calculateFinancialHealth = (
 ): FinancialHealth => {
   const { totalMonthlyIncome, totalMonthlyExpenses, disposableIncome } = financialSummary;
 
+  // If no financial data at all, return 0 score
+  if (totalMonthlyIncome === 0 && totalMonthlyExpenses === 0) {
+    return {
+      score: 0,
+      incomeExpenseRatio: 0,
+      savingsRate: 0,
+      emergencyFundWeeks: 0,
+      recommendations: ['Add income sources and set budget allocations to start tracking your financial health.']
+    };
+  }
+
   // Calculate metrics
   const incomeExpenseRatio = totalMonthlyIncome > 0 ? totalMonthlyIncome / totalMonthlyExpenses : 0;
   const savingsRate = totalMonthlyIncome > 0 ? (disposableIncome / totalMonthlyIncome) * 100 : 0;
