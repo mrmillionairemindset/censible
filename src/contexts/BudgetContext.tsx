@@ -228,7 +228,8 @@ interface BudgetProviderProps {
 }
 
 export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children, userId }) => {
-  console.log('🔧 BudgetProvider initializing with userId:', userId);
+  const timestamp = new Date().toISOString();
+  console.log(`🏠 [${timestamp}] === BUDGET PROVIDER START for user ${userId} ===`);
   const [state, dispatch] = useReducer(budgetReducer, initialState);
   const [hasLoadedData, setHasLoadedData] = useState(false);
   const userStorage = useMemo(() => new UserStorage(userId), [userId]);

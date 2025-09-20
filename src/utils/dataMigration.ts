@@ -5,16 +5,20 @@
 
 export const migrateLocalDataToSupabase = async (userId: string): Promise<void> => {
   try {
+    const timestamp = new Date().toISOString();
+    console.log(`🔄 [${timestamp}] === NEW USER MIGRATION START ===`);
+    console.log(`🔄 [${timestamp}] User ID: ${userId}`);
+
     // Check if migration has already been done
     const migrationFlag = `migration_${userId}_complete`;
     const migrationComplete = localStorage.getItem(migrationFlag);
 
     if (migrationComplete) {
-      console.log(`Migration already completed for user ${userId}`);
+      console.log(`🔄 [${timestamp}] Migration already completed for user ${userId}`);
       return;
     }
 
-    console.log(`Starting data migration for user ${userId}...`);
+    console.log(`🔄 [${timestamp}] Starting data migration for user ${userId}...`);
 
     // Get all existing localStorage data
     const localData = {
@@ -38,6 +42,13 @@ export const migrateLocalDataToSupabase = async (userId: string): Promise<void> 
       savingsGoalsCount: parsedData.savingsGoals.length,
       incomeSourcesCount: parsedData.income.length
     });
+
+    // Log if any data would be migrated
+    if (parsedData.transactions.length > 0 || parsedData.budget || parsedData.savingsGoals.length > 0 || parsedData.income.length > 0) {
+      console.warn(`🚨 [${timestamp}] DEMO DATA DETECTED for user ${userId} - This will be migrated:`, parsedData);
+    } else {
+      console.log(`✅ [${timestamp}] No demo data to migrate for user ${userId} - user will start fresh`);
+    }
 
     // Log detailed data for inspection
     if (parsedData.transactions.length > 0) {
@@ -107,7 +118,7 @@ export const migrateLocalDataToSupabase = async (userId: string): Promise<void> 
 
     // Set migration complete flag
     localStorage.setItem(migrationFlag, 'true');
-    console.log(`Migration completed for user ${userId}`);
+    console.log(`🔄 [${timestamp}] === MIGRATION COMPLETED for user ${userId} ===`);
 
     // NOTE: Not clearing localStorage yet to keep data accessible
     // TODO: Clear localStorage after confirming Supabase data integrity

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, DollarSign, Bell, Repeat, X, Plus, AlertCircle } from 'lucide-react';
 import { useBudget } from '../../contexts/BudgetContext';
 import { CategoryType } from '../../types';
+import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 interface Bill {
@@ -23,6 +24,7 @@ interface BillManagerProps {
 
 const BillManager: React.FC<BillManagerProps> = ({ onClose }) => {
   const { addTransaction } = useBudget();
+  const { user } = useAuth();
   const [bills, setBills] = useState<Bill[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newBill, setNewBill] = useState({
@@ -34,56 +36,25 @@ const BillManager: React.FC<BillManagerProps> = ({ onClose }) => {
     reminderDays: 3
   });
 
-  // Load bills from localStorage on mount
+  // Load bills from user-specific localStorage on mount
   useEffect(() => {
-    const savedBills = localStorage.getItem('centsible_bills');
+    if (!user) return;
+
+    const billsKey = `centsible_${user.id}_bills`;
+    const savedBills = localStorage.getItem(billsKey);
     if (savedBills) {
       setBills(JSON.parse(savedBills));
-    } else {
-      // Initialize with demo bills
-      const demoBills: Bill[] = [
-        {
-          id: '1',
-          name: 'Rent',
-          amount: 1200,
-          category: 'housing',
-          dueDay: 1,
-          isRecurring: true,
-          frequency: 'monthly',
-          reminderDays: 3
-        },
-        {
-          id: '2',
-          name: 'Internet',
-          amount: 60,
-          category: 'utilities',
-          dueDay: 15,
-          isRecurring: true,
-          frequency: 'monthly',
-          reminderDays: 2
-        },
-        {
-          id: '3',
-          name: 'Netflix',
-          amount: 15,
-          category: 'entertainment',
-          dueDay: 10,
-          isRecurring: true,
-          frequency: 'monthly',
-          reminderDays: 1
-        }
-      ];
-      setBills(demoBills);
-      localStorage.setItem('centsible_bills', JSON.stringify(demoBills));
     }
-  }, []);
+    // No demo data - users start with empty bills list
+  }, [user]);
 
-  // Save bills to localStorage whenever bills change
+  // Save bills to user-specific localStorage whenever bills change
   useEffect(() => {
-    if (bills.length > 0) {
-      localStorage.setItem('centsible_bills', JSON.stringify(bills));
-    }
-  }, [bills]);
+    if (!user || bills.length === 0) return;
+
+    const billsKey = `centsible_${user.id}_bills`;
+    localStorage.setItem(billsKey, JSON.stringify(bills));
+  }, [bills, user]);
 
   const getDaysUntilDue = (dueDay: number) => {
     const today = new Date();

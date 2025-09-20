@@ -114,6 +114,14 @@ export class UserStorage {
       return;
     }
 
+    // NEW USERS SHOULD START FRESH - No migration of global demo data
+    console.log('New user detected - starting with fresh data (no migration)');
+
+    // Migration is disabled to prevent demo data from being copied to new users
+    // If you need to enable migration for a specific use case, uncomment the code below
+    // and ensure the global data is legitimate user data, not demo data
+
+    /*
     console.log('Migrating global data to user-specific storage...');
 
     // Migrate transactions
@@ -169,6 +177,7 @@ export class UserStorage {
     }
 
     console.log('Migration completed');
+    */
   }
 
   // Clean up global data after migration (optional)
