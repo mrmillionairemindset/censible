@@ -15,7 +15,14 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
   totalMonthlyIncome = 0,
   totalMonthlyExpenses = 0
 }) => {
-  const { savingsGoals, setSavingsGoals } = useBudget();
+  const { savingsGoals, setSavingsGoals, budget } = useBudget();
+
+  // Calculate total budget allocations
+  const totalBudgetAllocated = budget.categories.reduce((sum, category) => sum + category.allocated, 0);
+
+  // Use budget allocations if available, otherwise fall back to tracked expenses
+  const monthlyExpenseReference = totalBudgetAllocated > 0 ? totalBudgetAllocated : totalMonthlyExpenses;
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingGoal, setEditingGoal] = useState<SavingsGoal | null>(null);
   const [activeGoalId, setActiveGoalId] = useState<string | null>(null);
@@ -668,50 +675,102 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
                     </div>
 
                     {/* Emergency Fund Calculator - Shows when emergency fund category is selected */}
-                    {newGoal.category === 'emergency-fund' && totalMonthlyExpenses > 0 && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    {newGoal.category === 'emergency-fund' && (
+                      <div className={`border rounded-lg p-4 ${
+                        monthlyExpenseReference === 0
+                          ? 'bg-amber-50 border-amber-200'
+                          : 'bg-blue-50 border-blue-200'
+                      }`}>
                         <div className="flex items-start gap-2">
-                          <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                          {monthlyExpenseReference === 0 ? (
+                            <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                          ) : (
+                            <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                          )}
                           <div className="flex-1">
-                            <h4 className="font-medium text-blue-900 mb-2">Emergency Fund Recommendations</h4>
-                            <p className="text-sm text-blue-800 mb-3">
-                              Based on your monthly expenses of <span className="font-bold">${totalMonthlyExpenses.toFixed(0)}</span>:
-                            </p>
+                            <h4 className={`font-medium mb-2 ${
+                              monthlyExpenseReference === 0 ? 'text-amber-900' : 'text-blue-900'
+                            }`}>
+                              Emergency Fund Recommendations
+                            </h4>
+
+                            {monthlyExpenseReference === 0 ? (
+                              <>
+                                <p className="text-sm text-amber-800 mb-3">
+                                  <strong>No budget set yet!</strong> To get accurate emergency fund recommendations:
+                                </p>
+                                <ol className="text-sm text-amber-700 space-y-1 list-decimal list-inside mb-3">
+                                  <li>Set up your budget allocations for each category</li>
+                                  <li>Include all regular expenses (rent, utilities, groceries, etc.)</li>
+                                  <li>Your total budget will be used to calculate your emergency fund needs</li>
+                                  <li>Then come back to set your emergency fund target</li>
+                                </ol>
+                                <div className="bg-amber-100 border border-amber-300 rounded p-3">
+                                  <p className="text-sm text-amber-800">
+                                    <strong>Temporary guidance:</strong> Most financial experts recommend 3-6 months of expenses.
+                                    A typical household might need $3,000-$6,000 per month, suggesting an emergency fund of $9,000-$36,000.
+                                  </p>
+                                  <p className="text-xs text-amber-700 mt-2">
+                                    You can set a placeholder amount now and adjust it later once your budget is configured.
+                                  </p>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <p className="text-sm text-blue-800 mb-3">
+                                  Based on your {totalBudgetAllocated > 0 ? 'budget allocations' : 'tracked expenses'} of <span className="font-bold">${monthlyExpenseReference.toFixed(0)}</span>:
+                                </p>
+                                {totalBudgetAllocated > 0 && totalMonthlyExpenses > 0 && Math.abs(totalBudgetAllocated - totalMonthlyExpenses) > totalBudgetAllocated * 0.2 && (
+                                  <div className="bg-yellow-100 border border-yellow-300 rounded p-2 mb-3">
+                                    <p className="text-xs text-yellow-800">
+                                      <strong>Note:</strong> Your budget (${totalBudgetAllocated.toFixed(0)}) differs significantly from your tracked expenses (${totalMonthlyExpenses.toFixed(0)}). Consider updating your budget.
+                                    </p>
+                                  </div>
+                                )}
+                                {monthlyExpenseReference < 1000 && (
+                                  <div className="bg-yellow-100 border border-yellow-300 rounded p-2 mb-3">
+                                    <p className="text-xs text-yellow-800">
+                                      <strong>Note:</strong> Your {totalBudgetAllocated > 0 ? 'budget allocations' : 'tracked expenses'} seem low. Make sure you've included all regular expenses for accurate recommendations.
+                                    </p>
+                                  </div>
+                                )}
                             <div className="space-y-2">
                               <button
                                 type="button"
-                                onClick={() => setNewGoal({...newGoal, targetAmount: (totalMonthlyExpenses * 3).toFixed(0)})}
+                                onClick={() => setNewGoal({...newGoal, targetAmount: (monthlyExpenseReference * 3).toFixed(0)})}
                                 className="w-full text-left p-2 bg-white rounded border border-blue-300 hover:bg-blue-100 transition-colors"
                               >
                                 <div className="flex justify-between items-center">
                                   <span className="text-sm font-medium text-blue-900">3 months (Minimum)</span>
-                                  <span className="text-sm font-bold text-blue-700">${(totalMonthlyExpenses * 3).toFixed(0)}</span>
+                                  <span className="text-sm font-bold text-blue-700">${(monthlyExpenseReference * 3).toFixed(0)}</span>
                                 </div>
                               </button>
                               <button
                                 type="button"
-                                onClick={() => setNewGoal({...newGoal, targetAmount: (totalMonthlyExpenses * 6).toFixed(0)})}
+                                onClick={() => setNewGoal({...newGoal, targetAmount: (monthlyExpenseReference * 6).toFixed(0)})}
                                 className="w-full text-left p-2 bg-white rounded border border-green-300 hover:bg-green-100 transition-colors"
                               >
                                 <div className="flex justify-between items-center">
                                   <span className="text-sm font-medium text-green-900">6 months (Recommended)</span>
-                                  <span className="text-sm font-bold text-green-700">${(totalMonthlyExpenses * 6).toFixed(0)}</span>
+                                  <span className="text-sm font-bold text-green-700">${(monthlyExpenseReference * 6).toFixed(0)}</span>
                                 </div>
                               </button>
                               <button
                                 type="button"
-                                onClick={() => setNewGoal({...newGoal, targetAmount: (totalMonthlyExpenses * 9).toFixed(0)})}
+                                onClick={() => setNewGoal({...newGoal, targetAmount: (monthlyExpenseReference * 9).toFixed(0)})}
                                 className="w-full text-left p-2 bg-white rounded border border-purple-300 hover:bg-purple-100 transition-colors"
                               >
                                 <div className="flex justify-between items-center">
                                   <span className="text-sm font-medium text-purple-900">9 months (Excellent)</span>
-                                  <span className="text-sm font-bold text-purple-700">${(totalMonthlyExpenses * 9).toFixed(0)}</span>
+                                  <span className="text-sm font-bold text-purple-700">${(monthlyExpenseReference * 9).toFixed(0)}</span>
                                 </div>
                               </button>
                             </div>
                             <p className="text-xs text-blue-700 mt-3">
                               Click any option above to set as your target amount
                             </p>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -720,14 +779,14 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
                     {/* Show warning if emergency fund target is less than 3 months */}
                     {newGoal.category === 'emergency-fund' &&
                      newGoal.targetAmount &&
-                     parseFloat(newGoal.targetAmount) < totalMonthlyExpenses * 3 &&
-                     totalMonthlyExpenses > 0 && (
+                     parseFloat(newGoal.targetAmount) < monthlyExpenseReference * 3 &&
+                     monthlyExpenseReference > 0 && (
                       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                         <div className="flex items-start gap-2">
                           <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
                           <div className="flex-1">
                             <p className="text-sm text-yellow-800">
-                              Your target of <span className="font-bold">${parseFloat(newGoal.targetAmount).toFixed(0)}</span> is less than the recommended minimum of 3 months expenses (<span className="font-bold">${(totalMonthlyExpenses * 3).toFixed(0)}</span>).
+                              Your target of <span className="font-bold">${parseFloat(newGoal.targetAmount).toFixed(0)}</span> is less than the recommended minimum of 3 months {totalBudgetAllocated > 0 ? 'budget' : 'expenses'} (<span className="font-bold">${(monthlyExpenseReference * 3).toFixed(0)}</span>).
                             </p>
                             <p className="text-xs text-yellow-700 mt-1">
                               Consider increasing your target for better financial security.
