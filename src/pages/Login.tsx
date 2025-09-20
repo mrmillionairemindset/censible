@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const Login: React.FC = () => {
@@ -91,21 +92,21 @@ const Login: React.FC = () => {
           </div>
 
           <div className="text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setIsSignUp(!isSignUp);
-                clearError();
-                setEmail('');
-                setPassword('');
-              }}
-              className="text-[#27AE60] hover:text-[#219A52] text-sm font-medium"
-            >
-              {isSignUp
-                ? 'Already have an account? Sign in'
-                : "Don't have an account? Sign up"
-              }
-            </button>
+            {isSignUp ? (
+              <Link
+                to="/login"
+                className="text-[#27AE60] hover:text-[#219A52] text-sm font-medium"
+              >
+                Already have an account? Sign in
+              </Link>
+            ) : (
+              <Link
+                to="/signup"
+                className="text-[#27AE60] hover:text-[#219A52] text-sm font-medium"
+              >
+                Don't have an account? Sign up
+              </Link>
+            )}
           </div>
         </form>
       </div>

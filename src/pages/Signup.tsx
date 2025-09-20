@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const Signup: React.FC = () => {
@@ -135,12 +136,12 @@ const Signup: React.FC = () => {
           </div>
 
           <div className="text-center">
-            <a
-              href="/login"
+            <Link
+              to="/login"
               className="text-[#27AE60] hover:text-[#219A52] text-sm font-medium"
             >
               Already have an account? Log in
-            </a>
+            </Link>
           </div>
         </form>
       </div>

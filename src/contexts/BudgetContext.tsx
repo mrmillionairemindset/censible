@@ -16,6 +16,7 @@ import {
   generateFinancialSummary,
   calculateFinancialHealth
 } from '../utils/financialCalculations';
+import { UserStorage } from '../utils/userStorage';
 
 interface BudgetState {
   transactions: Transaction[];
@@ -172,14 +173,11 @@ function budgetReducer(state: BudgetState, action: BudgetAction): BudgetState {
     case 'UPDATE_CATEGORY_BUDGETS': {
       const { categories, totalBudget } = action.payload;
 
-      // Save to localStorage immediately
       const updatedBudget = {
         ...state.budget,
         categories,
         totalBudget,
       };
-
-      localStorage.setItem('centsible_budget', JSON.stringify(updatedBudget));
 
       return {
         ...state,
@@ -224,33 +222,31 @@ export const useBudget = () => {
 
 interface BudgetProviderProps {
   children: ReactNode;
+  userId: string;
 }
 
-export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
+export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children, userId }) => {
   const [state, dispatch] = useReducer(budgetReducer, initialState);
 
-  // Load data from localStorage on mount
+  // Load data from user-specific storage on mount and perform migration
   useEffect(() => {
     const loadData = () => {
       dispatch({ type: 'SET_LOADING', payload: true });
       try {
-        const savedTransactions = localStorage.getItem('centsible_transactions');
-        const savedBudget = localStorage.getItem('centsible_budget');
+        // Perform migration from global to user-specific data
+        UserStorage.migrateGlobalData(userId);
+
+        const userStorage = new UserStorage(userId);
 
         // Load budget first
+        const savedBudget = userStorage.getBudget();
         if (savedBudget) {
-          const budget = JSON.parse(savedBudget);
-          budget.startDate = new Date(budget.startDate);
-          dispatch({ type: 'UPDATE_BUDGET', payload: budget });
+          dispatch({ type: 'UPDATE_BUDGET', payload: savedBudget });
         }
 
         // Load transactions and recalculate spent amounts
+        const savedTransactions = userStorage.getTransactions();
         if (savedTransactions) {
-          const transactions = JSON.parse(savedTransactions).map((t: any) => ({
-            ...t,
-            date: new Date(t.date),
-          }));
-
           // First, reset all category spent amounts to 0
           defaultCategories.forEach(cat => {
             dispatch({ type: 'UPDATE_CATEGORY_SPENT', payload: { category: cat.category, amount: 0 } });
@@ -258,7 +254,7 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
 
           // Then recalculate spent amounts from transactions
           const spentByCategory: Record<string, number> = {};
-          transactions.forEach((t: Transaction) => {
+          savedTransactions.forEach((t: Transaction) => {
             spentByCategory[t.category] = (spentByCategory[t.category] || 0) + t.amount;
           });
 
@@ -267,14 +263,14 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
             dispatch({ type: 'UPDATE_CATEGORY_SPENT', payload: { category: category as CategoryType, amount } });
           });
 
-          // Set transactions last
-          dispatch({ type: 'SET_TRANSACTIONS', payload: transactions });
+          dispatch({ type: 'SET_TRANSACTIONS', payload: savedTransactions });
         }
 
         // Load income sources
-        const savedIncome = localStorage.getItem('centsible_income');
+        const savedIncome = userStorage.getIncomeSources();
         if (savedIncome) {
-          const income = JSON.parse(savedIncome).map((source: any) => ({
+          // Map to ensure dates are Date objects
+          const income = savedIncome.map((source: any) => ({
             ...source,
             startDate: new Date(source.startDate)
           }));
@@ -282,16 +278,18 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
         }
 
         // Load savings goals
-        const savedGoals = localStorage.getItem('centsible_savings_goals');
+        const savedGoals = userStorage.getSavingsGoals();
         if (savedGoals) {
-          const goals = JSON.parse(savedGoals).map((goal: any) => ({
+          // Map to ensure dates are Date objects
+          const goals = savedGoals.map((goal: any) => ({
             ...goal,
             targetDate: new Date(goal.targetDate)
           }));
           dispatch({ type: 'SET_SAVINGS_GOALS', payload: goals });
         }
+
       } catch (error) {
-        console.error('Error loading data from localStorage:', error);
+        console.error('Error loading user data:', error);
         dispatch({ type: 'SET_ERROR', payload: 'Failed to load saved data' });
       } finally {
         dispatch({ type: 'SET_LOADING', payload: false });
@@ -299,19 +297,22 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
     };
 
     loadData();
-  }, []);
+  }, [userId]);
 
-  // Save to localStorage whenever state changes
+  // Save to user-specific storage whenever state changes
   useEffect(() => {
-    if (!state.isLoading) {
+    if (!state.isLoading && userId) {
       try {
-        localStorage.setItem('centsible_transactions', JSON.stringify(state.transactions));
-        localStorage.setItem('centsible_budget', JSON.stringify(state.budget));
+        const userStorage = new UserStorage(userId);
+        userStorage.setTransactions(state.transactions);
+        userStorage.setBudget(state.budget);
+        userStorage.setIncomeSources(state.incomeSources);
+        userStorage.setSavingsGoals(state.savingsGoals);
       } catch (error) {
-        console.error('Error saving to localStorage:', error);
+        console.error('Error saving user data:', error);
       }
     }
-  }, [state.transactions, state.budget, state.isLoading]);
+  }, [state.transactions, state.budget, state.incomeSources, state.savingsGoals, state.isLoading, userId]);
 
   const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
     dispatch({ type: 'ADD_TRANSACTION', payload: transaction });
