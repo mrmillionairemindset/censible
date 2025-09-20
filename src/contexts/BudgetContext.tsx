@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, ReactNode, useMemo } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, ReactNode, useMemo, useState } from 'react';
 import {
   Transaction,
   Budget,
@@ -228,11 +228,24 @@ interface BudgetProviderProps {
 }
 
 export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children, userId }) => {
+  console.log('🔧 BudgetProvider initializing with userId:', userId);
   const [state, dispatch] = useReducer(budgetReducer, initialState);
+  const [hasLoadedData, setHasLoadedData] = useState(false);
   const userStorage = useMemo(() => new UserStorage(userId), [userId]);
+
+  // Component lifecycle logging
+  useEffect(() => {
+    console.log('🔧 BudgetProvider mounted for userId:', userId);
+    return () => {
+      console.log('🔧 BudgetProvider unmounting for userId:', userId);
+    };
+  }, [userId]);
 
   // Load data from user-specific storage on mount and perform migration
   useEffect(() => {
+    console.log('🔧 useEffect triggered with userId:', userId);
+    console.log('🔧 Current state:', state);
+    console.log('🔧 hasLoadedData:', hasLoadedData);
     const loadData = () => {
       console.log('🔄 Loading data for userId:', userId);
       dispatch({ type: 'SET_LOADING', payload: true });
@@ -240,8 +253,12 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children, userId
         // Perform migration from global to user-specific data
         UserStorage.migrateGlobalData(userId);
 
-        // Skip loading saved budget - users start fresh with $0 allocations
-        console.log('💰 Starting fresh - no saved budget loaded');
+        // Load saved budget
+        const savedBudget = userStorage.getBudget();
+        console.log('💰 Loading saved budget:', savedBudget);
+        if (savedBudget) {
+          dispatch({ type: 'UPDATE_BUDGET', payload: savedBudget });
+        }
 
         // Load transactions and recalculate spent amounts
         const savedTransactions = userStorage.getTransactions();
@@ -269,13 +286,17 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children, userId
         // Load income sources
         const savedIncome = userStorage.getIncomeSources();
         console.log('💵 Loaded income sources:', savedIncome);
+        console.log('💵 Raw localStorage income data:', localStorage.getItem(`centsible_${userId}_income`));
         if (savedIncome) {
           // Map to ensure dates are Date objects
           const income = savedIncome.map((source: any) => ({
             ...source,
             startDate: new Date(source.startDate)
           }));
+          console.log('💵 Processed income for dispatch:', income);
           dispatch({ type: 'SET_INCOME_SOURCES', payload: income });
+        } else {
+          console.log('💵 No saved income found, starting with empty array');
         }
 
         // Load savings goals
@@ -295,27 +316,29 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children, userId
         dispatch({ type: 'SET_ERROR', payload: 'Failed to load saved data' });
       } finally {
         dispatch({ type: 'SET_LOADING', payload: false });
+        setHasLoadedData(true);
       }
     };
 
+    console.log('🔧 About to call loadData()');
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
+    console.log('🔧 loadData() completed');
+  }, [userId, userStorage]);
 
   // Save to user-specific storage whenever state changes
   useEffect(() => {
-    if (!state.isLoading && userId) {
+    if (!state.isLoading && userId && hasLoadedData) {
       try {
-        const userStorage = new UserStorage(userId);
         userStorage.setTransactions(state.transactions);
         userStorage.setBudget(state.budget);
         userStorage.setIncomeSources(state.incomeSources);
         userStorage.setSavingsGoals(state.savingsGoals);
+        console.log('💾 Saved user data to storage');
       } catch (error) {
         console.error('Error saving user data:', error);
       }
     }
-  }, [state.transactions, state.budget, state.incomeSources, state.savingsGoals, state.isLoading, userId]);
+  }, [state.transactions, state.budget, state.incomeSources, state.savingsGoals, state.isLoading, userId, userStorage, hasLoadedData]);
 
   const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
     dispatch({ type: 'ADD_TRANSACTION', payload: transaction });
@@ -358,10 +381,16 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children, userId
   };
 
   const setIncomeSources = (sources: IncomeSource[]) => {
+    console.log('🔧 setIncomeSources called with:', sources);
+    console.log('🔧 userId:', userId);
     dispatch({ type: 'SET_INCOME_SOURCES', payload: sources });
     // Save to user-specific storage
     if (userId) {
+      console.log('🔧 Saving income sources to storage...');
       userStorage.setIncomeSources(sources);
+      console.log('🔧 Income sources saved successfully');
+    } else {
+      console.warn('⚠️ No userId available, cannot save income sources');
     }
   };
 

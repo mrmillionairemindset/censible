@@ -86,7 +86,11 @@ export class UserStorage {
 
   setIncomeSources(incomeSources: IncomeSource[]): void {
     try {
-      localStorage.setItem(this.getKey('income'), JSON.stringify(incomeSources));
+      const key = this.getKey('income');
+      console.log('🔧 UserStorage: Saving income with key:', key);
+      console.log('🔧 UserStorage: Income data:', incomeSources);
+      localStorage.setItem(key, JSON.stringify(incomeSources));
+      console.log('🔧 UserStorage: Income saved to localStorage successfully');
     } catch (error) {
       console.error('Error saving income sources:', error);
     }

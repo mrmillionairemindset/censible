@@ -42,6 +42,10 @@ const IncomeTracker: React.FC = () => {
   };
 
   const handleAddIncome = () => {
+    console.log('🔧 handleAddIncome called');
+    console.log('🔧 newIncome:', newIncome);
+    console.log('🔧 setIncomeSources function:', setIncomeSources);
+
     if (!newIncome.source || !newIncome.amount) {
       toast.error('Please fill in all required fields');
       return;
@@ -59,7 +63,9 @@ const IncomeTracker: React.FC = () => {
       description: newIncome.description || undefined
     };
 
+    console.log('🔧 About to call setIncomeSources with:', [...incomeSources, income]);
     setIncomeSources([...incomeSources, income]);
+    console.log('🔧 setIncomeSources called successfully');
 
     // Reset form
     setNewIncome({
