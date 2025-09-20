@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, Plus, Edit3, Trash2, Calendar, ArrowUp, ArrowDown } from 'lucide-react';
+import { Target, Plus, Edit3, Trash2, Calendar, ArrowUp, ArrowDown, Info, AlertTriangle } from 'lucide-react';
 import { SavingsGoal, SavingsGoalCategory, SavingsGoalCategoryLabels, SavingsGoalCategoryIcons } from '../../types';
 import toast from 'react-hot-toast';
 import { v4 as uuidv4 } from 'uuid';
@@ -666,6 +666,76 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
                         ))}
                       </select>
                     </div>
+
+                    {/* Emergency Fund Calculator - Shows when emergency fund category is selected */}
+                    {newGoal.category === 'emergency-fund' && totalMonthlyExpenses > 0 && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-start gap-2">
+                          <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                          <div className="flex-1">
+                            <h4 className="font-medium text-blue-900 mb-2">Emergency Fund Recommendations</h4>
+                            <p className="text-sm text-blue-800 mb-3">
+                              Based on your monthly expenses of <span className="font-bold">${totalMonthlyExpenses.toFixed(0)}</span>:
+                            </p>
+                            <div className="space-y-2">
+                              <button
+                                type="button"
+                                onClick={() => setNewGoal({...newGoal, targetAmount: (totalMonthlyExpenses * 3).toFixed(0)})}
+                                className="w-full text-left p-2 bg-white rounded border border-blue-300 hover:bg-blue-100 transition-colors"
+                              >
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm font-medium text-blue-900">3 months (Minimum)</span>
+                                  <span className="text-sm font-bold text-blue-700">${(totalMonthlyExpenses * 3).toFixed(0)}</span>
+                                </div>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setNewGoal({...newGoal, targetAmount: (totalMonthlyExpenses * 6).toFixed(0)})}
+                                className="w-full text-left p-2 bg-white rounded border border-green-300 hover:bg-green-100 transition-colors"
+                              >
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm font-medium text-green-900">6 months (Recommended)</span>
+                                  <span className="text-sm font-bold text-green-700">${(totalMonthlyExpenses * 6).toFixed(0)}</span>
+                                </div>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setNewGoal({...newGoal, targetAmount: (totalMonthlyExpenses * 9).toFixed(0)})}
+                                className="w-full text-left p-2 bg-white rounded border border-purple-300 hover:bg-purple-100 transition-colors"
+                              >
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm font-medium text-purple-900">9 months (Excellent)</span>
+                                  <span className="text-sm font-bold text-purple-700">${(totalMonthlyExpenses * 9).toFixed(0)}</span>
+                                </div>
+                              </button>
+                            </div>
+                            <p className="text-xs text-blue-700 mt-3">
+                              Click any option above to set as your target amount
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Show warning if emergency fund target is less than 3 months */}
+                    {newGoal.category === 'emergency-fund' &&
+                     newGoal.targetAmount &&
+                     parseFloat(newGoal.targetAmount) < totalMonthlyExpenses * 3 &&
+                     totalMonthlyExpenses > 0 && (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                          <div className="flex-1">
+                            <p className="text-sm text-yellow-800">
+                              Your target of <span className="font-bold">${parseFloat(newGoal.targetAmount).toFixed(0)}</span> is less than the recommended minimum of 3 months expenses (<span className="font-bold">${(totalMonthlyExpenses * 3).toFixed(0)}</span>).
+                            </p>
+                            <p className="text-xs text-yellow-700 mt-1">
+                              Consider increasing your target for better financial security.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Buttons */}
