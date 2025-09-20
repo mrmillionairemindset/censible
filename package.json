@@ -13,6 +13,7 @@
     "centsible"
   ],
   "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
