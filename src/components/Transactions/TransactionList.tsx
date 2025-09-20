@@ -3,9 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useBudget } from '../../contexts/BudgetContext';
 import TransactionCard from './TransactionCard';
 import { Transaction, CategoryType, CategoryLabels } from '../../types';
-import { Search, Filter, Download, TrendingDown, TrendingUp } from 'lucide-react';
+import { Search, Filter, Download, TrendingDown, TrendingUp, X } from 'lucide-react';
 import { format, startOfDay, isToday, isYesterday, isThisWeek } from 'date-fns';
 import { staggerContainer, staggerItem } from '../../utils/animations';
+import toast from 'react-hot-toast';
 
 const TransactionList: React.FC = () => {
   const { transactions, selectedCategory, deleteTransaction, updateTransaction } = useBudget();
@@ -13,6 +14,14 @@ const TransactionList: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState<'date' | 'amount'>('date');
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [editForm, setEditForm] = useState({
+    amount: '',
+    description: '',
+    category: 'other' as CategoryType,
+    merchant: '',
+    notes: '',
+    date: ''
+  });
 
   const filteredTransactions = useMemo(() => {
     let filtered = [...transactions];
@@ -73,6 +82,40 @@ const TransactionList: React.FC = () => {
 
   const handleEdit = (transaction: Transaction) => {
     setEditingTransaction(transaction);
+    setEditForm({
+      amount: transaction.amount.toString(),
+      description: transaction.description,
+      category: transaction.category,
+      merchant: transaction.merchant || '',
+      notes: transaction.notes || '',
+      date: format(new Date(transaction.date), 'yyyy-MM-dd')
+    });
+  };
+
+  const handleUpdateTransaction = () => {
+    if (!editingTransaction) return;
+
+    const updatedTransaction: Transaction = {
+      ...editingTransaction,
+      amount: parseFloat(editForm.amount) || 0,
+      description: editForm.description,
+      category: editForm.category,
+      merchant: editForm.merchant || undefined,
+      notes: editForm.notes || undefined,
+      date: new Date(editForm.date)
+    };
+
+    updateTransaction(updatedTransaction);
+    setEditingTransaction(null);
+    setEditForm({
+      amount: '',
+      description: '',
+      category: 'other',
+      merchant: '',
+      notes: '',
+      date: ''
+    });
+    toast.success('Transaction updated successfully!');
   };
 
   const handleDelete = (id: string) => {
@@ -246,6 +289,145 @@ const TransactionList: React.FC = () => {
           </motion.div>
         )}
       </motion.div>
+
+      {/* Edit Transaction Modal */}
+      <AnimatePresence>
+        {editingTransaction && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={() => setEditingTransaction(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-gray-800">
+                  Edit Transaction
+                </h3>
+                <button
+                  onClick={() => setEditingTransaction(null)}
+                  className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Amount */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Amount *
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-3 text-gray-500">$</span>
+                    <input
+                      type="number"
+                      value={editForm.amount === '0' ? '' : editForm.amount}
+                      placeholder="0"
+                      onChange={(e) => setEditForm({...editForm, amount: e.target.value})}
+                      className="w-full pl-8 pr-3 py-3 border border-gray-200 rounded-lg focus:border-mint-500 focus:outline-none"
+                      autoFocus
+                    />
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Description *
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.description}
+                    onChange={(e) => setEditForm({...editForm, description: e.target.value})}
+                    className="w-full p-3 border border-gray-200 rounded-lg focus:border-mint-500 focus:outline-none"
+                    placeholder="What was this expense for?"
+                  />
+                </div>
+
+                {/* Category */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Category
+                  </label>
+                  <select
+                    value={editForm.category}
+                    onChange={(e) => setEditForm({...editForm, category: e.target.value as CategoryType})}
+                    className="w-full p-3 border border-gray-200 rounded-lg focus:border-mint-500 focus:outline-none"
+                  >
+                    {Object.entries(CategoryLabels).map(([key, label]) => (
+                      <option key={key} value={key}>{label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Merchant */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Merchant (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.merchant}
+                    onChange={(e) => setEditForm({...editForm, merchant: e.target.value})}
+                    className="w-full p-3 border border-gray-200 rounded-lg focus:border-mint-500 focus:outline-none"
+                    placeholder="Store or business name"
+                  />
+                </div>
+
+                {/* Date */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    value={editForm.date}
+                    onChange={(e) => setEditForm({...editForm, date: e.target.value})}
+                    className="w-full p-3 border border-gray-200 rounded-lg focus:border-mint-500 focus:outline-none"
+                  />
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Notes (Optional)
+                  </label>
+                  <textarea
+                    value={editForm.notes}
+                    onChange={(e) => setEditForm({...editForm, notes: e.target.value})}
+                    className="w-full p-3 border border-gray-200 rounded-lg focus:border-mint-500 focus:outline-none resize-none"
+                    rows={3}
+                    placeholder="Additional notes..."
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={handleUpdateTransaction}
+                  className="flex-1 py-3 bg-mint-500 text-white rounded-lg hover:bg-mint-600 transition-colors font-medium"
+                >
+                  Update Transaction
+                </button>
+                <button
+                  onClick={() => setEditingTransaction(null)}
+                  className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };

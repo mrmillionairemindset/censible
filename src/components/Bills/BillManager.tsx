@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, X, Plus, AlertCircle } from 'lucide-react';
+import { Calendar, X, Plus, AlertCircle, Edit3, Trash2 } from 'lucide-react';
 import { useBudget } from '../../contexts/BudgetContext';
 import { CategoryType, CategoryLabels } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
@@ -28,6 +28,9 @@ const BillManager: React.FC<BillManagerProps> = ({ onClose }) => {
   const [bills, setBills] = useState<Bill[]>([]);
   const [hasLoadedBills, setHasLoadedBills] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingBill, setEditingBill] = useState<Bill | null>(null);
+  const [payingBill, setPayingBill] = useState<Bill | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState('');
   const [newBill, setNewBill] = useState({
     name: '',
     amount: '',
@@ -78,24 +81,40 @@ const BillManager: React.FC<BillManagerProps> = ({ onClose }) => {
   };
 
   const handlePayBill = (bill: Bill) => {
+    setPayingBill(bill);
+    setPaymentAmount(bill.amount.toString());
+  };
+
+  const handleConfirmPayment = () => {
+    if (!payingBill) return;
+
+    const actualAmount = parseFloat(paymentAmount) || payingBill.amount;
+
     // Add as transaction
     addTransaction({
-      amount: bill.amount,
-      description: bill.name,
-      category: bill.category,
+      amount: actualAmount,
+      description: payingBill.name,
+      category: payingBill.category,
       date: new Date(),
-      merchant: bill.name
+      merchant: payingBill.name
     });
 
-    // Update bill's last paid date
+    // Update bill's last paid date and amount if different
     const updatedBills = bills.map(b =>
-      b.id === bill.id
-        ? { ...b, lastPaid: new Date().toISOString() }
+      b.id === payingBill.id
+        ? {
+            ...b,
+            lastPaid: new Date().toISOString(),
+            // Update the bill amount if user changed it (for variable bills like electric)
+            amount: actualAmount !== payingBill.amount ? actualAmount : b.amount
+          }
         : b
     );
     setBills(updatedBills);
 
-    toast.success(`${bill.name} marked as paid!`);
+    setPayingBill(null);
+    setPaymentAmount('');
+    toast.success(`${payingBill.name} marked as paid!`);
   };
 
   const handleAddBill = () => {
@@ -131,6 +150,48 @@ const BillManager: React.FC<BillManagerProps> = ({ onClose }) => {
   const handleDeleteBill = (billId: string) => {
     setBills(bills.filter(b => b.id !== billId));
     toast.success('Bill deleted');
+  };
+
+  const handleEditBill = (bill: Bill) => {
+    setEditingBill(bill);
+    setNewBill({
+      name: bill.name,
+      amount: bill.amount.toString(),
+      category: bill.category,
+      dueDay: bill.dueDay,
+      isRecurring: bill.isRecurring,
+      reminderDays: bill.reminderDays
+    });
+    // Don't show the bottom form for editing
+  };
+
+  const handleUpdateBill = () => {
+    if (!editingBill) return;
+
+    const updatedBill: Bill = {
+      ...editingBill,
+      name: newBill.name,
+      amount: parseFloat(newBill.amount) || 0,
+      category: newBill.category,
+      dueDay: newBill.dueDay,
+      isRecurring: newBill.isRecurring,
+      reminderDays: newBill.reminderDays
+    };
+
+    setBills(bills.map(b => b.id === editingBill.id ? updatedBill : b));
+
+    // Reset form
+    setNewBill({
+      name: '',
+      amount: '',
+      category: 'other',
+      dueDay: 1,
+      isRecurring: true,
+      reminderDays: 3
+    });
+    setShowAddForm(false);
+    setEditingBill(null);
+    toast.success('Bill updated successfully!');
   };
 
   const getUrgentBillsCount = () => {
@@ -249,12 +310,22 @@ const BillManager: React.FC<BillManagerProps> = ({ onClose }) => {
                         >
                           Pay Now
                         </button>
-                        <button
-                          onClick={() => handleDeleteBill(bill.id)}
-                          className="px-3 py-1 bg-red-100 text-red-600 rounded-lg text-sm hover:bg-red-200 transition-colors"
-                        >
-                          Delete
-                        </button>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => handleEditBill(bill)}
+                            className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-600 rounded text-sm hover:bg-blue-200 transition-colors"
+                          >
+                            <Edit3 className="w-3 h-3" />
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteBill(bill.id)}
+                            className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-600 rounded text-sm hover:bg-red-200 transition-colors"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            Delete
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </motion.div>
@@ -273,14 +344,16 @@ const BillManager: React.FC<BillManagerProps> = ({ onClose }) => {
 
           {/* Add New Bill Form */}
           <AnimatePresence>
-            {showAddForm && (
+            {showAddForm && !editingBill && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 className="border-t pt-4 mt-4 overflow-hidden"
               >
-                <h3 className="font-medium mb-3 text-gray-800">Add New Bill</h3>
+                <h3 className="font-medium mb-3 text-gray-800">
+                  Add New Bill
+                </h3>
                 <div className="space-y-3">
                   <input
                     type="text"
@@ -343,7 +416,18 @@ const BillManager: React.FC<BillManagerProps> = ({ onClose }) => {
                       Add Bill
                     </button>
                     <button
-                      onClick={() => setShowAddForm(false)}
+                      onClick={() => {
+                        setShowAddForm(false);
+                        setEditingBill(null);
+                        setNewBill({
+                          name: '',
+                          amount: '',
+                          category: 'other',
+                          dueDay: 1,
+                          isRecurring: true,
+                          reminderDays: 3
+                        });
+                      }}
                       className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
                     >
                       Cancel
@@ -372,6 +456,210 @@ const BillManager: React.FC<BillManagerProps> = ({ onClose }) => {
           </div>
         </div>
       </motion.div>
+
+      {/* Payment Modal */}
+      <AnimatePresence>
+        {payingBill && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={() => setPayingBill(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-xl font-bold text-gray-800 mb-4">
+                Pay Bill: {payingBill.name}
+              </h3>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Payment Amount
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-3 text-gray-500">$</span>
+                    <input
+                      type="number"
+                      value={paymentAmount}
+                      onChange={(e) => setPaymentAmount(e.target.value)}
+                      className="w-full pl-8 pr-3 py-3 border border-gray-200 rounded-lg focus:border-green-500 focus:outline-none"
+                      placeholder={payingBill.amount.toString()}
+                      autoFocus
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {parseFloat(paymentAmount) !== payingBill.amount
+                      ? "Bill amount will be updated for future references"
+                      : "Using standard bill amount"
+                    }
+                  </p>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-sm text-gray-600">
+                    <strong>Category:</strong> {CategoryLabels[payingBill.category]}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    <strong>Due:</strong> Day {payingBill.dueDay} of each month
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={handleConfirmPayment}
+                  className="flex-1 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
+                >
+                  Confirm Payment
+                </button>
+                <button
+                  onClick={() => setPayingBill(null)}
+                  className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Bill Modal */}
+      <AnimatePresence>
+        {editingBill && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={() => setEditingBill(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-xl font-bold text-gray-800 mb-4">
+                Edit Bill: {editingBill.name}
+              </h3>
+
+              <div className="space-y-4">
+                {/* Bill Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Bill Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={newBill.name}
+                    onChange={(e) => setNewBill({...newBill, name: e.target.value})}
+                    className="w-full p-3 border border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none"
+                    placeholder="e.g., Electric Bill"
+                    autoFocus
+                  />
+                </div>
+
+                {/* Amount */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Amount *
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-3 text-gray-500">$</span>
+                    <input
+                      type="number"
+                      value={newBill.amount === '0' ? '' : newBill.amount}
+                      placeholder="0"
+                      onChange={(e) => setNewBill({...newBill, amount: e.target.value})}
+                      className="w-full pl-8 pr-3 py-3 border border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Category */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Category
+                  </label>
+                  <select
+                    value={newBill.category}
+                    onChange={(e) => setNewBill({...newBill, category: e.target.value as CategoryType})}
+                    className="w-full p-3 border border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none"
+                  >
+                    {Object.entries(CategoryLabels).map(([key, label]) => (
+                      <option key={key} value={key}>{label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Due Day */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Due Day of Month
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={newBill.dueDay}
+                    onChange={(e) => setNewBill({...newBill, dueDay: parseInt(e.target.value) || 1})}
+                    className="w-full p-3 border border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none"
+                  />
+                </div>
+
+                {/* Reminder Days */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Remind me (days before due)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="30"
+                    value={newBill.reminderDays}
+                    onChange={(e) => setNewBill({...newBill, reminderDays: parseInt(e.target.value) || 0})}
+                    className="w-full p-3 border border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={handleUpdateBill}
+                  className="flex-1 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors font-medium"
+                >
+                  Update Bill
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingBill(null);
+                    setNewBill({
+                      name: '',
+                      amount: '',
+                      category: 'other',
+                      dueDay: 1,
+                      isRecurring: true,
+                      reminderDays: 3
+                    });
+                  }}
+                  className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };
