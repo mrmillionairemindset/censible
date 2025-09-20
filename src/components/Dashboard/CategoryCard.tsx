@@ -49,25 +49,29 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
   const percentage = allocated > 0 ? (spent / allocated) * 100 : 0;
   const remaining = allocated - spent;
   const isOverBudget = remaining < 0;
+  const isExactlyOnBudget = remaining === 0 && allocated > 0;
   const daysLeft = Math.ceil((new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate() - new Date().getDate()));
   const dailyBudget = remaining > 0 ? remaining / daysLeft : 0;
 
   const getStatusColor = () => {
-    if (percentage >= 100) return 'bg-red-50 border-red-200';
+    if (percentage > 100) return 'bg-red-50 border-red-200';
+    if (percentage === 100) return 'bg-blue-50 border-blue-200';
     if (percentage >= 90) return 'bg-amber-50 border-amber-200';
     if (percentage >= 70) return 'bg-yellow-50 border-yellow-200';
     return 'bg-white border-gray-200';
   };
 
   const getStatusText = () => {
-    if (percentage >= 100) return 'Over Budget!';
+    if (percentage > 100) return 'Over Budget!';
+    if (percentage === 100) return 'Exactly on Budget';
     if (percentage >= 90) return 'Almost there';
     if (percentage >= 70) return 'On track';
     return 'Good standing';
   };
 
   const getStatusTextColor = () => {
-    if (percentage >= 100) return 'text-red-600';
+    if (percentage > 100) return 'text-red-600';
+    if (percentage === 100) return 'text-blue-600';
     if (percentage >= 90) return 'text-amber-600';
     if (percentage >= 70) return 'text-yellow-600';
     return 'text-mint-600';
@@ -131,8 +135,10 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
           {/* Spending Info */}
           <div className="space-y-1">
             <p className="text-sm text-gray-600">Spent: <span className="font-semibold">${spent.toFixed(0)}</span></p>
-            <p className={`text-sm font-medium ${isOverBudget ? 'text-red-600' : 'text-gray-700'}`}>
-              {isOverBudget ? `$${Math.abs(remaining).toFixed(0)} over` : `$${remaining.toFixed(0)} left`}
+            <p className={`text-sm font-medium ${isOverBudget ? 'text-red-600' : isExactlyOnBudget ? 'text-blue-600' : 'text-gray-700'}`}>
+              {isOverBudget ? `$${Math.abs(remaining).toFixed(0)} over` :
+               isExactlyOnBudget ? 'Fully allocated' :
+               `$${remaining.toFixed(0)} left`}
             </p>
             <p className="text-xs text-gray-500">
               ${Math.max(0, dailyBudget).toFixed(0)}/day remaining

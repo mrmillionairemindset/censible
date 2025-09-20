@@ -66,7 +66,8 @@ const SpendingDonutChart: React.FC = () => {
   };
 
   const getProgressColor = (percentage: number) => {
-    if (percentage >= 100) return '#EF4444'; // Red for over budget
+    if (percentage > 100) return '#EF4444'; // Red for over budget
+    if (percentage === 100) return '#3B82F6'; // Blue for exactly on budget
     if (percentage >= 70) return '#F59E0B';  // Amber for warning
     return '#10B981'; // Green for good
   };
@@ -75,8 +76,13 @@ const SpendingDonutChart: React.FC = () => {
   const renderCenterLabel = () => {
     // Keep center label static - don't change on hover
     const displayAmount = remaining;
-    const displayLabel = remaining >= 0 ? 'Remaining' : 'Over Budget';
-    const displayColor = remaining < 0 ? 'text-red-500' : 'text-mint-600';
+    const isExactlyOnBudget = remaining === 0 && budget.totalBudget > 0;
+    const displayLabel = remaining > 0 ? 'Remaining' :
+                        remaining === 0 ? 'On Budget' :
+                        'Over Budget';
+    const displayColor = remaining < 0 ? 'text-red-500' :
+                        isExactlyOnBudget ? 'text-blue-500' :
+                        'text-mint-600';
 
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
@@ -232,13 +238,22 @@ const SpendingDonutChart: React.FC = () => {
                       </div>
                     </div>
 
-                    {activeCategory.percentage >= 100 && (
+                    {activeCategory.percentage > 100 && (
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         className="text-xs text-red-600 font-medium bg-red-50 px-2 py-1 rounded"
                       >
                         ⚠️ Over budget by ${(activeCategory.spent - activeCategory.budget).toFixed(0)}
+                      </motion.div>
+                    )}
+                    {activeCategory.percentage === 100 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-1 rounded"
+                      >
+                        ✓ Exactly on budget
                       </motion.div>
                     )}
                   </div>
