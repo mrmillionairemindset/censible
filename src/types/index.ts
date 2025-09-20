@@ -6,6 +6,16 @@ export type CategoryType =
   | 'entertainment'
   | 'dining'
   | 'utilities'
+  | 'debt-payments'
+  | 'credit-cards'
+  | 'giving-charity'
+  | 'savings'
+  | 'insurance'
+  | 'medical'
+  | 'education'
+  | 'personal-care'
+  | 'investments'
+  | 'subscriptions'
   | 'other';
 
 export interface Transaction {
@@ -84,6 +94,16 @@ export const CategoryColors: Record<CategoryType, string> = {
   entertainment: '#3B82F6',
   dining: '#EF4444',
   utilities: '#FACC15',
+  'debt-payments': '#DC2626',
+  'credit-cards': '#7C2D12',
+  'giving-charity': '#059669',
+  savings: '#0D9488',
+  insurance: '#1E40AF',
+  medical: '#BE185D',
+  education: '#7C3AED',
+  'personal-care': '#EA580C',
+  investments: '#065F46',
+  subscriptions: '#4338CA',
   other: '#6B7280'
 };
 
@@ -95,6 +115,16 @@ export const CategoryIcons: Record<CategoryType, string> = {
   entertainment: '🎭',
   dining: '🍽️',
   utilities: '⚡',
+  'debt-payments': '💳',
+  'credit-cards': '💰',
+  'giving-charity': '❤️',
+  savings: '🏦',
+  insurance: '🛡️',
+  medical: '🏥',
+  education: '📚',
+  'personal-care': '✨',
+  investments: '📈',
+  subscriptions: '📱',
   other: '📦'
 };
 
@@ -106,6 +136,16 @@ export const CategoryLabels: Record<CategoryType, string> = {
   entertainment: 'Entertainment',
   dining: 'Dining',
   utilities: 'Utilities',
+  'debt-payments': 'Debt Payments',
+  'credit-cards': 'Credit Cards',
+  'giving-charity': 'Giving/Charity',
+  savings: 'Savings',
+  insurance: 'Insurance',
+  medical: 'Medical',
+  education: 'Education',
+  'personal-care': 'Personal Care',
+  investments: 'Investments',
+  subscriptions: 'Subscriptions',
   other: 'Other'
 };
 

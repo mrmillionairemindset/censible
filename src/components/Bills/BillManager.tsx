@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, X, Plus, AlertCircle } from 'lucide-react';
 import { useBudget } from '../../contexts/BudgetContext';
-import { CategoryType } from '../../types';
+import { CategoryType, CategoryLabels } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -301,14 +301,11 @@ const BillManager: React.FC<BillManagerProps> = ({ onClose }) => {
                     value={newBill.category}
                     onChange={(e) => setNewBill({...newBill, category: e.target.value as CategoryType})}
                   >
-                    <option value="housing">Housing</option>
-                    <option value="utilities">Utilities</option>
-                    <option value="entertainment">Entertainment</option>
-                    <option value="transportation">Transportation</option>
-                    <option value="groceries">Groceries</option>
-                    <option value="dining">Dining</option>
-                    <option value="shopping">Shopping</option>
-                    <option value="other">Other</option>
+                    {Object.entries(CategoryLabels).map(([key, label]) => (
+                      <option key={key} value={key}>
+                        {label}
+                      </option>
+                    ))}
                   </select>
                   <div className="grid grid-cols-2 gap-3">
                     <div>

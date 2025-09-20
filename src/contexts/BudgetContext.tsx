@@ -50,6 +50,16 @@ const defaultCategories: BudgetCategory[] = [
   { category: 'entertainment', allocated: 0, spent: 0, color: CategoryColors.entertainment, icon: CategoryIcons.entertainment },
   { category: 'dining', allocated: 0, spent: 0, color: CategoryColors.dining, icon: CategoryIcons.dining },
   { category: 'utilities', allocated: 0, spent: 0, color: CategoryColors.utilities, icon: CategoryIcons.utilities },
+  { category: 'debt-payments', allocated: 0, spent: 0, color: CategoryColors['debt-payments'], icon: CategoryIcons['debt-payments'] },
+  { category: 'credit-cards', allocated: 0, spent: 0, color: CategoryColors['credit-cards'], icon: CategoryIcons['credit-cards'] },
+  { category: 'giving-charity', allocated: 0, spent: 0, color: CategoryColors['giving-charity'], icon: CategoryIcons['giving-charity'] },
+  { category: 'savings', allocated: 0, spent: 0, color: CategoryColors.savings, icon: CategoryIcons.savings },
+  { category: 'insurance', allocated: 0, spent: 0, color: CategoryColors.insurance, icon: CategoryIcons.insurance },
+  { category: 'medical', allocated: 0, spent: 0, color: CategoryColors.medical, icon: CategoryIcons.medical },
+  { category: 'education', allocated: 0, spent: 0, color: CategoryColors.education, icon: CategoryIcons.education },
+  { category: 'personal-care', allocated: 0, spent: 0, color: CategoryColors['personal-care'], icon: CategoryIcons['personal-care'] },
+  { category: 'investments', allocated: 0, spent: 0, color: CategoryColors.investments, icon: CategoryIcons.investments },
+  { category: 'subscriptions', allocated: 0, spent: 0, color: CategoryColors.subscriptions, icon: CategoryIcons.subscriptions },
   { category: 'other', allocated: 0, spent: 0, color: CategoryColors.other, icon: CategoryIcons.other },
 ];
 

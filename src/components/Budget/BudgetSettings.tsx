@@ -172,6 +172,16 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({
             entertainment: 75,
             dining: 100,
             utilities: 120,
+            'debt-payments': 200,
+            'credit-cards': 150,
+            'giving-charity': 50,
+            savings: 200,
+            insurance: 150,
+            medical: 100,
+            education: 50,
+            'personal-care': 50,
+            investments: 100,
+            subscriptions: 75,
             other: 80
           }[cat.category] || 100
         }));
@@ -187,6 +197,16 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({
             entertainment: 150,
             dining: 200,
             utilities: 180,
+            'debt-payments': 300,
+            'credit-cards': 250,
+            'giving-charity': 100,
+            savings: 350,
+            insurance: 200,
+            medical: 150,
+            education: 100,
+            'personal-care': 100,
+            investments: 200,
+            subscriptions: 125,
             other: 150
           }[cat.category] || 150
         }));
@@ -202,6 +222,16 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({
             entertainment: 300,
             dining: 350,
             utilities: 250,
+            'debt-payments': 500,
+            'credit-cards': 400,
+            'giving-charity': 200,
+            savings: 600,
+            insurance: 300,
+            medical: 250,
+            education: 200,
+            'personal-care': 150,
+            investments: 400,
+            subscriptions: 200,
             other: 200
           }[cat.category] || 200
         }));
