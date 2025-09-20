@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DollarSign, Plus, Edit3, Trash2, ToggleLeft, ToggleRight, TrendingUp } from 'lucide-react';
 import { IncomeSource, IncomeFrequency, IncomeFrequencyLabels } from '../../types';
@@ -20,34 +20,8 @@ const IncomeTracker: React.FC = () => {
     description: ''
   });
 
-  // Initialize with demo data if empty
-  useEffect(() => {
-    if (!incomeSources || incomeSources.length === 0) {
-      // Initialize with demo data
-      const demoIncome: IncomeSource[] = [
-        {
-          id: '1',
-          source: 'Software Engineer - TechCorp',
-          amount: 5000,
-          frequency: 'monthly',
-          startDate: new Date(),
-          isActive: true,
-          category: 'salary'
-        },
-        {
-          id: '2',
-          source: 'Freelance Consulting',
-          amount: 1200,
-          frequency: 'monthly',
-          startDate: new Date(),
-          isActive: true,
-          category: 'freelance'
-        }
-      ];
-      setIncomeSources(demoIncome);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // No demo data - users start fresh
+  // Income sources will be loaded from context/storage if they exist
 
   // Convert any income to monthly amount
   const convertToMonthly = (amount: number, frequency: IncomeFrequency): number => {

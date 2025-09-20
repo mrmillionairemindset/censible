@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, Plus, Edit3, Trash2, DollarSign, Calendar, TrendingUp, ArrowUp, ArrowDown } from 'lucide-react';
+import { Target, Plus, Edit3, Trash2, Calendar, ArrowUp, ArrowDown } from 'lucide-react';
 import { SavingsGoal, SavingsGoalCategory, SavingsGoalCategoryLabels, SavingsGoalCategoryIcons } from '../../types';
 import toast from 'react-hot-toast';
 import { v4 as uuidv4 } from 'uuid';
+import { useBudget } from '../../contexts/BudgetContext';
 
 interface SavingsGoalsProps {
   totalMonthlyIncome?: number;
@@ -14,7 +15,7 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
   totalMonthlyIncome = 0,
   totalMonthlyExpenses = 0
 }) => {
-  const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([]);
+  const { savingsGoals, setSavingsGoals } = useBudget();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingGoal, setEditingGoal] = useState<SavingsGoal | null>(null);
   const [activeGoalId, setActiveGoalId] = useState<string | null>(null);
@@ -39,62 +40,9 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
     }));
   };
 
-  // Load savings goals from localStorage
-  useEffect(() => {
-    const savedGoals = localStorage.getItem('centsible_savings_goals');
-    if (savedGoals) {
-      const parsed = JSON.parse(savedGoals).map((goal: any) => ({
-        ...goal,
-        targetDate: new Date(goal.targetDate)
-      }));
-      // Normalize priorities on load to fix any broken data
-      const normalizedGoals = normalizePriorities(parsed);
-      setSavingsGoals(normalizedGoals);
-    } else {
-      // Initialize with demo data
-      const demoGoals: SavingsGoal[] = [
-        {
-          id: '1',
-          name: 'Emergency Fund',
-          targetAmount: 15000,
-          currentAmount: 3500,
-          targetDate: new Date(2024, 11, 31),
-          category: 'emergency-fund',
-          priority: 1,
-          isActive: true
-        },
-        {
-          id: '2',
-          name: 'Europe Vacation',
-          targetAmount: 5000,
-          currentAmount: 1200,
-          targetDate: new Date(2024, 5, 15),
-          category: 'vacation',
-          priority: 2,
-          isActive: true
-        },
-        {
-          id: '3',
-          name: 'New Car Down Payment',
-          targetAmount: 8000,
-          currentAmount: 2500,
-          targetDate: new Date(2024, 8, 1),
-          category: 'major-purchase',
-          priority: 3,
-          isActive: true
-        }
-      ];
-      setSavingsGoals(demoGoals);
-      localStorage.setItem('centsible_savings_goals', JSON.stringify(demoGoals));
-    }
-  }, []);
+  // No demo data - users start fresh with context data
 
-  // Save to localStorage whenever goals change
-  useEffect(() => {
-    if (savingsGoals.length > 0) {
-      localStorage.setItem('centsible_savings_goals', JSON.stringify(savingsGoals));
-    }
-  }, [savingsGoals]);
+  // Context handles saving to storage
 
   const calculateMonthsToGoal = (goal: SavingsGoal): number => {
     const remaining = goal.targetAmount - goal.currentAmount;

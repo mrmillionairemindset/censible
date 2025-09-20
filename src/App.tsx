@@ -10,7 +10,6 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
-import { generateDemoData } from './utils/demoData';
 import './App.css';
 
 const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -37,16 +36,8 @@ const DashboardWrapper: React.FC = () => {
   useEffect(() => {
     // Generate demo data if no transactions exist and user is authenticated
     if (user) {
-      const userTransactionKey = `centsible_transactions_${user.id}`;
-      const userIncomeKey = `centsible_income_${user.id}`;
-      const existingTransactions = localStorage.getItem(userTransactionKey);
-      const existingIncome = localStorage.getItem(userIncomeKey);
-
-      // Generate demo data if no user-specific data exists
-      if (!existingTransactions && !existingIncome) {
-        console.log('🎯 Generating demo data for new user:', user.id);
-        generateDemoData();
-      }
+      // No demo data - users start fresh
+      console.log('👤 User logged in:', user.id);
     }
   }, [user]);
 

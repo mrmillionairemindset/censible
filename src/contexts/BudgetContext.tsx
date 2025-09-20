@@ -43,20 +43,20 @@ type BudgetAction =
   | { type: 'SET_SAVINGS_GOALS'; payload: SavingsGoal[] };
 
 const defaultCategories: BudgetCategory[] = [
-  { category: 'groceries', allocated: 500, spent: 0, color: CategoryColors.groceries, icon: CategoryIcons.groceries },
-  { category: 'housing', allocated: 1200, spent: 0, color: CategoryColors.housing, icon: CategoryIcons.housing },
-  { category: 'transportation', allocated: 200, spent: 0, color: CategoryColors.transportation, icon: CategoryIcons.transportation },
-  { category: 'shopping', allocated: 300, spent: 0, color: CategoryColors.shopping, icon: CategoryIcons.shopping },
-  { category: 'entertainment', allocated: 150, spent: 0, color: CategoryColors.entertainment, icon: CategoryIcons.entertainment },
-  { category: 'dining', allocated: 250, spent: 0, color: CategoryColors.dining, icon: CategoryIcons.dining },
-  { category: 'utilities', allocated: 180, spent: 0, color: CategoryColors.utilities, icon: CategoryIcons.utilities },
-  { category: 'other', allocated: 220, spent: 0, color: CategoryColors.other, icon: CategoryIcons.other },
+  { category: 'groceries', allocated: 0, spent: 0, color: CategoryColors.groceries, icon: CategoryIcons.groceries },
+  { category: 'housing', allocated: 0, spent: 0, color: CategoryColors.housing, icon: CategoryIcons.housing },
+  { category: 'transportation', allocated: 0, spent: 0, color: CategoryColors.transportation, icon: CategoryIcons.transportation },
+  { category: 'shopping', allocated: 0, spent: 0, color: CategoryColors.shopping, icon: CategoryIcons.shopping },
+  { category: 'entertainment', allocated: 0, spent: 0, color: CategoryColors.entertainment, icon: CategoryIcons.entertainment },
+  { category: 'dining', allocated: 0, spent: 0, color: CategoryColors.dining, icon: CategoryIcons.dining },
+  { category: 'utilities', allocated: 0, spent: 0, color: CategoryColors.utilities, icon: CategoryIcons.utilities },
+  { category: 'other', allocated: 0, spent: 0, color: CategoryColors.other, icon: CategoryIcons.other },
 ];
 
 const initialState: BudgetState = {
   transactions: [],
   budget: {
-    totalBudget: 3000,
+    totalBudget: 0,
     categories: defaultCategories,
     period: 'monthly',
     startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
@@ -207,6 +207,7 @@ interface BudgetContextType extends BudgetState {
   getCategorySpending: (category: CategoryType) => { spent: number; allocated: number; percentage: number };
   updateCategoryBudgets: (categories: BudgetCategory[], totalBudget: number) => void;
   setIncomeSources: (sources: IncomeSource[]) => void;
+  setSavingsGoals: (goals: SavingsGoal[]) => void;
   financialSummary: FinancialSummary;
   financialHealth: FinancialHealth;
 }
@@ -239,12 +240,8 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children, userId
         // Perform migration from global to user-specific data
         UserStorage.migrateGlobalData(userId);
 
-        // Load budget first
-        const savedBudget = userStorage.getBudget();
-        console.log('💰 Loaded budget:', savedBudget);
-        if (savedBudget) {
-          dispatch({ type: 'UPDATE_BUDGET', payload: savedBudget });
-        }
+        // Skip loading saved budget - users start fresh with $0 allocations
+        console.log('💰 Starting fresh - no saved budget loaded');
 
         // Load transactions and recalculate spent amounts
         const savedTransactions = userStorage.getTransactions();
@@ -368,6 +365,14 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children, userId
     }
   };
 
+  const setSavingsGoals = (goals: SavingsGoal[]) => {
+    dispatch({ type: 'SET_SAVINGS_GOALS', payload: goals });
+    // Save to user-specific storage
+    if (userId) {
+      userStorage.setSavingsGoals(goals);
+    }
+  };
+
   // Calculate financial summary and health
   const financialSummary = useMemo(() => {
     console.log('🔍 Financial Summary Calculation:', {
@@ -401,6 +406,7 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children, userId
     getCategorySpending,
     updateCategoryBudgets,
     setIncomeSources,
+    setSavingsGoals,
     financialSummary,
     financialHealth,
   };
