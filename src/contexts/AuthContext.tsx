@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
+import { migrateLocalDataToSupabase } from '../utils/dataMigration';
 import toast from 'react-hot-toast';
 
 interface AuthContextType {
@@ -69,6 +70,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           case 'SIGNED_IN':
             setError(null);
             toast.success('Successfully signed in!');
+            // Trigger data migration after successful sign in
+            if (session?.user) {
+              migrateLocalDataToSupabase(session.user.id).catch((error) => {
+                console.error('Migration error:', error);
+              });
+            }
             break;
           case 'SIGNED_OUT':
             setError(null);

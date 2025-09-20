@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Settings } from 'lucide-react';
+import { Settings, LogOut, User } from 'lucide-react';
 import { useBudget } from '../../contexts/BudgetContext';
+import { useAuth } from '../../contexts/AuthContext';
 import SpendingDonutChart from './SpendingDonutChart';
 import CategoryCard from './CategoryCard';
 import TransactionList from '../Transactions/TransactionList';
@@ -28,6 +29,8 @@ const Dashboard: React.FC = () => {
     financialSummary,
     financialHealth
   } = useBudget();
+
+  const { user, signOut } = useAuth();
   const { getUrgentBillsCount } = useBillNotifications();
   const [showReceiptUploader, setShowReceiptUploader] = useState(false);
   const [showManualEntry, setShowManualEntry] = useState(false);
@@ -87,6 +90,21 @@ const Dashboard: React.FC = () => {
                 </div>
               </div>
 
+              {/* User Menu */}
+              <div className="flex items-center gap-3">
+                <div className="hidden sm:flex items-center gap-2 text-sm text-gray-600">
+                  <User className="w-4 h-4" />
+                  <span className="truncate max-w-[120px]">{user?.email}</span>
+                </div>
+                <button
+                  onClick={signOut}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                  title="Sign out"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="hidden sm:inline">Sign out</span>
+                </button>
+              </div>
             </div>
           </motion.div>
         </div>
