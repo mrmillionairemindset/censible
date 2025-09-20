@@ -37,8 +37,14 @@ const DashboardWrapper: React.FC = () => {
   useEffect(() => {
     // Generate demo data if no transactions exist and user is authenticated
     if (user) {
-      const existingTransactions = localStorage.getItem('centsible_transactions');
-      if (!existingTransactions || JSON.parse(existingTransactions).length === 0) {
+      const userTransactionKey = `centsible_transactions_${user.id}`;
+      const userIncomeKey = `centsible_income_${user.id}`;
+      const existingTransactions = localStorage.getItem(userTransactionKey);
+      const existingIncome = localStorage.getItem(userIncomeKey);
+
+      // Generate demo data if no user-specific data exists
+      if (!existingTransactions && !existingIncome) {
+        console.log('🎯 Generating demo data for new user:', user.id);
         generateDemoData();
       }
     }

@@ -1,4 +1,4 @@
-import { Transaction, CategoryType } from '../types';
+import { Transaction, CategoryType, IncomeSource, SavingsGoal } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
 const demoTransactions: Omit<Transaction, 'id'>[] = [
@@ -141,6 +141,62 @@ const demoTransactions: Omit<Transaction, 'id'>[] = [
   },
 ];
 
+// Demo income sources
+const demoIncomeSources: IncomeSource[] = [
+  {
+    id: uuidv4(),
+    source: 'Primary Job',
+    amount: 4500,
+    frequency: 'monthly',
+    startDate: new Date(2024, 0, 1), // January 1, 2024
+    isActive: true,
+    category: 'salary'
+  },
+  {
+    id: uuidv4(),
+    source: 'Freelance Work',
+    amount: 800,
+    frequency: 'monthly',
+    startDate: new Date(2024, 2, 1), // March 1, 2024
+    isActive: true,
+    category: 'freelance'
+  }
+];
+
+// Demo savings goals
+const demoSavingsGoals: SavingsGoal[] = [
+  {
+    id: uuidv4(),
+    name: 'Emergency Fund',
+    targetAmount: 15000,
+    currentAmount: 3500,
+    targetDate: new Date(2024, 11, 31), // December 31, 2024
+    category: 'emergency-fund',
+    priority: 1,
+    isActive: true
+  },
+  {
+    id: uuidv4(),
+    name: 'Vacation Fund',
+    targetAmount: 5000,
+    currentAmount: 1200,
+    targetDate: new Date(2024, 6, 15), // July 15, 2024
+    category: 'vacation',
+    priority: 2,
+    isActive: true
+  },
+  {
+    id: uuidv4(),
+    name: 'Car Down Payment',
+    targetAmount: 8000,
+    currentAmount: 2500,
+    targetDate: new Date(2024, 9, 1), // October 1, 2024
+    category: 'major-purchase',
+    priority: 3,
+    isActive: true
+  }
+];
+
 export function generateDemoData() {
   // Create transactions with IDs
   const transactions: Transaction[] = demoTransactions.map(t => ({
@@ -148,13 +204,17 @@ export function generateDemoData() {
     id: uuidv4(),
   }));
 
-  // Save to localStorage
+  // Save to localStorage (global keys for migration)
   localStorage.setItem('centsible_transactions', JSON.stringify(transactions));
+  localStorage.setItem('centsible_income', JSON.stringify(demoIncomeSources));
+  localStorage.setItem('centsible_savings_goals', JSON.stringify(demoSavingsGoals));
 
   console.log('✅ Demo data generated successfully!');
   console.log(`📊 Created ${transactions.length} sample transactions`);
+  console.log(`💵 Created ${demoIncomeSources.length} income sources`);
+  console.log(`🎯 Created ${demoSavingsGoals.length} savings goals`);
 
-  return transactions;
+  return { transactions, incomeSources: demoIncomeSources, savingsGoals: demoSavingsGoals };
 }
 
 export function clearDemoData() {

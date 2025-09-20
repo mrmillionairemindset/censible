@@ -206,6 +206,7 @@ interface BudgetContextType extends BudgetState {
   getRemainingBudget: () => number;
   getCategorySpending: (category: CategoryType) => { spent: number; allocated: number; percentage: number };
   updateCategoryBudgets: (categories: BudgetCategory[], totalBudget: number) => void;
+  setIncomeSources: (sources: IncomeSource[]) => void;
   financialSummary: FinancialSummary;
   financialHealth: FinancialHealth;
 }
@@ -227,25 +228,27 @@ interface BudgetProviderProps {
 
 export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children, userId }) => {
   const [state, dispatch] = useReducer(budgetReducer, initialState);
+  const userStorage = useMemo(() => new UserStorage(userId), [userId]);
 
   // Load data from user-specific storage on mount and perform migration
   useEffect(() => {
     const loadData = () => {
+      console.log('🔄 Loading data for userId:', userId);
       dispatch({ type: 'SET_LOADING', payload: true });
       try {
         // Perform migration from global to user-specific data
         UserStorage.migrateGlobalData(userId);
 
-        const userStorage = new UserStorage(userId);
-
         // Load budget first
         const savedBudget = userStorage.getBudget();
+        console.log('💰 Loaded budget:', savedBudget);
         if (savedBudget) {
           dispatch({ type: 'UPDATE_BUDGET', payload: savedBudget });
         }
 
         // Load transactions and recalculate spent amounts
         const savedTransactions = userStorage.getTransactions();
+        console.log('💳 Loaded transactions:', savedTransactions);
         if (savedTransactions) {
           // First, reset all category spent amounts to 0
           defaultCategories.forEach(cat => {
@@ -268,6 +271,7 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children, userId
 
         // Load income sources
         const savedIncome = userStorage.getIncomeSources();
+        console.log('💵 Loaded income sources:', savedIncome);
         if (savedIncome) {
           // Map to ensure dates are Date objects
           const income = savedIncome.map((source: any) => ({
@@ -279,6 +283,7 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children, userId
 
         // Load savings goals
         const savedGoals = userStorage.getSavingsGoals();
+        console.log('🎯 Loaded savings goals:', savedGoals);
         if (savedGoals) {
           // Map to ensure dates are Date objects
           const goals = savedGoals.map((goal: any) => ({
@@ -297,6 +302,7 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children, userId
     };
 
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   // Save to user-specific storage whenever state changes
@@ -354,16 +360,34 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children, userId
     dispatch({ type: 'UPDATE_CATEGORY_BUDGETS', payload: { categories, totalBudget } });
   };
 
-  // Calculate financial summary and health
-  const financialSummary = useMemo(() =>
-    generateFinancialSummary(state.incomeSources, state.budget.categories, state.savingsGoals),
-    [state.incomeSources, state.budget.categories, state.savingsGoals]
-  );
+  const setIncomeSources = (sources: IncomeSource[]) => {
+    dispatch({ type: 'SET_INCOME_SOURCES', payload: sources });
+    // Save to user-specific storage
+    if (userId) {
+      userStorage.setIncomeSources(sources);
+    }
+  };
 
-  const financialHealth = useMemo(() =>
-    calculateFinancialHealth(financialSummary, state.savingsGoals),
-    [financialSummary, state.savingsGoals]
-  );
+  // Calculate financial summary and health
+  const financialSummary = useMemo(() => {
+    console.log('🔍 Financial Summary Calculation:', {
+      userId,
+      incomeSources: state.incomeSources,
+      budgetCategories: state.budget.categories,
+      savingsGoals: state.savingsGoals,
+      transactions: state.transactions
+    });
+
+    const summary = generateFinancialSummary(state.incomeSources, state.budget.categories, state.savingsGoals);
+    console.log('📊 Calculated Summary:', summary);
+    return summary;
+  }, [state.incomeSources, state.budget.categories, state.savingsGoals, state.transactions, userId]);
+
+  const financialHealth = useMemo(() => {
+    const health = calculateFinancialHealth(financialSummary, state.savingsGoals);
+    console.log('💚 Financial Health Score:', health);
+    return health;
+  }, [financialSummary, state.savingsGoals]);
 
   const value: BudgetContextType = {
     ...state,
@@ -376,6 +400,7 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children, userId
     getRemainingBudget,
     getCategorySpending,
     updateCategoryBudgets,
+    setIncomeSources,
     financialSummary,
     financialHealth,
   };

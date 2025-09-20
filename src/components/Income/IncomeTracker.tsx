@@ -4,9 +4,10 @@ import { DollarSign, Plus, Edit3, Trash2, ToggleLeft, ToggleRight, TrendingUp } 
 import { IncomeSource, IncomeFrequency, IncomeFrequencyLabels } from '../../types';
 import toast from 'react-hot-toast';
 import { v4 as uuidv4 } from 'uuid';
+import { useBudget } from '../../contexts/BudgetContext';
 
 const IncomeTracker: React.FC = () => {
-  const [incomeSources, setIncomeSources] = useState<IncomeSource[]>([]);
+  const { incomeSources, setIncomeSources } = useBudget();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingIncome, setEditingIncome] = useState<IncomeSource | null>(null);
   const [showInactive, setShowInactive] = useState(false);
@@ -19,16 +20,9 @@ const IncomeTracker: React.FC = () => {
     description: ''
   });
 
-  // Load income sources from localStorage
+  // Initialize with demo data if empty
   useEffect(() => {
-    const savedIncome = localStorage.getItem('centsible_income');
-    if (savedIncome) {
-      const parsed = JSON.parse(savedIncome).map((income: any) => ({
-        ...income,
-        startDate: new Date(income.startDate)
-      }));
-      setIncomeSources(parsed);
-    } else {
+    if (!incomeSources || incomeSources.length === 0) {
       // Initialize with demo data
       const demoIncome: IncomeSource[] = [
         {
@@ -51,16 +45,9 @@ const IncomeTracker: React.FC = () => {
         }
       ];
       setIncomeSources(demoIncome);
-      localStorage.setItem('centsible_income', JSON.stringify(demoIncome));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Save to localStorage whenever income sources change
-  useEffect(() => {
-    if (incomeSources.length > 0) {
-      localStorage.setItem('centsible_income', JSON.stringify(incomeSources));
-    }
-  }, [incomeSources]);
 
   // Convert any income to monthly amount
   const convertToMonthly = (amount: number, frequency: IncomeFrequency): number => {
