@@ -137,18 +137,40 @@ const TransactionCard: React.FC<TransactionCardProps> = ({ transaction, onEdit, 
                 </div>
               </div>
 
-              {/* Right Side - Amount */}
-              <div className="text-right flex-shrink-0 ml-4">
-                <motion.p
-                  className="text-xl font-bold text-gray-900"
-                  initial={{ scale: 1 }}
-                  whileHover={{ scale: 1.05 }}
-                >
-                  ${transaction.amount.toFixed(2)}
-                </motion.p>
-                <p className="text-sm text-gray-500">
-                  {format(new Date(transaction.date), 'h:mm a')}
-                </p>
+              {/* Right Side - Amount and Actions */}
+              <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+                <div className="text-right">
+                  <motion.p
+                    className="text-xl font-bold text-gray-900"
+                    initial={{ scale: 1 }}
+                    whileHover={{ scale: 1.05 }}
+                  >
+                    ${transaction.amount.toFixed(2)}
+                  </motion.p>
+                  <p className="text-sm text-gray-500">
+                    {format(new Date(transaction.date), 'h:mm a')}
+                  </p>
+                </div>
+                {/* Action Buttons - Hidden on mobile, visible on desktop */}
+                <div className="hidden md:flex flex-col gap-1">
+                  <button
+                    onClick={() => onEdit(transaction)}
+                    className="p-1.5 rounded hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors"
+                    title="Edit transaction"
+                  >
+                    <Edit3 size={16} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsDeleting(true);
+                      setTimeout(() => onDelete(transaction.id), 300);
+                    }}
+                    className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors"
+                    title="Delete transaction"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -163,9 +185,9 @@ const TransactionCard: React.FC<TransactionCardProps> = ({ transaction, onEdit, 
               </motion.div>
             )}
 
-            {/* Swipe Hint on Hover */}
+            {/* Swipe Hint on Mobile */}
             <motion.div
-              className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none"
+              className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none md:hidden"
               initial={{ opacity: 0 }}
               whileHover={{ opacity: 1 }}
             >

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, DollarSign, Bell, Repeat, X, Plus, AlertCircle } from 'lucide-react';
+import { Calendar, X, Plus, AlertCircle } from 'lucide-react';
 import { useBudget } from '../../contexts/BudgetContext';
 import { CategoryType } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
@@ -26,6 +26,7 @@ const BillManager: React.FC<BillManagerProps> = ({ onClose }) => {
   const { addTransaction } = useBudget();
   const { user } = useAuth();
   const [bills, setBills] = useState<Bill[]>([]);
+  const [hasLoadedBills, setHasLoadedBills] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newBill, setNewBill] = useState({
     name: '',
@@ -45,20 +46,22 @@ const BillManager: React.FC<BillManagerProps> = ({ onClose }) => {
     if (savedBills) {
       setBills(JSON.parse(savedBills));
     }
+    // Mark as loaded after attempting to load
+    setHasLoadedBills(true);
     // No demo data - users start with empty bills list
   }, [user]);
 
   // Save bills to user-specific localStorage whenever bills change
   useEffect(() => {
-    if (!user || bills.length === 0) return;
+    // Don't save until we've loaded existing bills first
+    if (!user || !hasLoadedBills) return;
 
     const billsKey = `centsible_${user.id}_bills`;
     localStorage.setItem(billsKey, JSON.stringify(bills));
-  }, [bills, user]);
+  }, [bills, user, hasLoadedBills]);
 
   const getDaysUntilDue = (dueDay: number) => {
     const today = new Date();
-    const currentDay = today.getDate();
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
 
