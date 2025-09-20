@@ -9,8 +9,8 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   error: string | null;
-  signUp: (email: string, password: string) => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<boolean>;
+  signIn: (email: string, password: string) => Promise<boolean>;
   signOut: () => Promise<void>;
   clearError: () => void;
 }
@@ -93,70 +93,133 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.log('User updated');
             break;
           default:
+            // Handle other auth events
+            console.log('Unhandled auth event:', event);
             break;
         }
       }
     );
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [isInitialLoad]);
 
-  const signUp = async (email: string, password: string) => {
-    try {
-      setLoading(true);
-      setError(null);
+  const signUp = async (email: string, password: string): Promise<boolean> => {
+    let retryCount = 0;
+    const maxRetries = 3;
 
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
+    while (retryCount < maxRetries) {
+      try {
+        setLoading(true);
+        setError(null);
 
-      if (error) {
-        setError(error.message);
-        toast.error(error.message);
-        return;
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+
+        if (error) {
+          console.error('Signup error:', error);
+
+          // Handle specific Supabase errors with user-friendly messages
+          let friendlyMessage = error.message;
+          if (error.message.includes('User already registered')) {
+            friendlyMessage = 'An account with this email already exists';
+          } else if (error.message.includes('Password should be at least')) {
+            friendlyMessage = 'Password must be at least 6 characters';
+          } else if (error.message.includes('Invalid email')) {
+            friendlyMessage = 'Please enter a valid email address';
+          } else if (error.message.includes('rate limit') || error.message.includes('too many')) {
+            friendlyMessage = 'Too many attempts. Please wait a moment and try again';
+          }
+
+          setError(friendlyMessage);
+          return false;
+        }
+
+        if (data.user && !data.session) {
+          // User created but needs to confirm email
+          return true;
+        }
+
+        return true;
+      } catch (err) {
+        console.error('Network error during signup:', err);
+        retryCount++;
+
+        if (retryCount < maxRetries) {
+          // Wait before retrying (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+          continue;
+        }
+
+        const errorMessage = 'Connection error. Please check your internet and try again.';
+        setError(errorMessage);
+        return false;
+      } finally {
+        setLoading(false);
       }
-
-      if (data.user && !data.session) {
-        // User created but needs to confirm email
-        toast.success('Please check your email to confirm your account!');
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
     }
+
+    return false;
   };
 
-  const signIn = async (email: string, password: string) => {
-    try {
-      setLoading(true);
-      setError(null);
+  const signIn = async (email: string, password: string): Promise<boolean> => {
+    let retryCount = 0;
+    const maxRetries = 3;
 
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+    while (retryCount < maxRetries) {
+      try {
+        setLoading(true);
+        setError(null);
 
-      if (error) {
-        setError(error.message);
-        toast.error(error.message);
-        return;
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) {
+          console.error('Signin error:', error);
+
+          // Handle specific Supabase errors with user-friendly messages
+          let friendlyMessage = error.message;
+          if (error.message.includes('Invalid login credentials')) {
+            friendlyMessage = 'Invalid email or password';
+          } else if (error.message.includes('Email not confirmed')) {
+            friendlyMessage = 'Please check your email and confirm your account';
+          } else if (error.message.includes('rate limit') || error.message.includes('too many')) {
+            friendlyMessage = 'Too many attempts. Please wait a moment and try again';
+          } else if (error.message.includes('User not found')) {
+            friendlyMessage = 'No account found with this email';
+          }
+
+          setError(friendlyMessage);
+          return false;
+        }
+
+        // Success is handled by the auth state change listener
+        return true;
+      } catch (err) {
+        console.error('Network error during signin:', err);
+        retryCount++;
+
+        if (retryCount < maxRetries) {
+          // Wait before retrying (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+          continue;
+        }
+
+        const errorMessage = 'Connection error. Please check your internet and try again.';
+        setError(errorMessage);
+        return false;
+      } finally {
+        setLoading(false);
       }
-
-      // Success is handled by the auth state change listener
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
     }
+
+    return false;
   };
 
-  const signOut = async () => {
+  const signOut = async (): Promise<void> => {
     try {
       setLoading(true);
       setError(null);
@@ -164,16 +227,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { error } = await supabase.auth.signOut();
 
       if (error) {
-        setError(error.message);
-        toast.error(error.message);
+        console.error('Signout error:', error);
+        setError('Failed to sign out. Please try again.');
         return;
       }
 
       // Success is handled by the auth state change listener
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+      console.error('Network error during signout:', err);
+      const errorMessage = 'Failed to sign out. Please try again.';
       setError(errorMessage);
-      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
