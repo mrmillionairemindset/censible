@@ -30,6 +30,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   // Check for existing session on mount
   useEffect(() => {
@@ -49,6 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setError('Failed to initialize authentication');
       } finally {
         setLoading(false);
+        setIsInitialLoad(false);
       }
     };
 
@@ -69,7 +71,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         switch (event) {
           case 'SIGNED_IN':
             setError(null);
-            toast.success('Successfully signed in!');
+            // Only show success message for actual sign-ins, not session restoration
+            if (!isInitialLoad) {
+              toast.success('Successfully signed in!');
+            }
             // Trigger data migration after successful sign in
             if (session?.user) {
               migrateLocalDataToSupabase(session.user.id).catch((error) => {
