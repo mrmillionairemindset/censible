@@ -31,7 +31,7 @@ const BillManager: React.FC<BillManagerProps> = ({ onClose }) => {
   const [newBill, setNewBill] = useState({
     name: '',
     amount: '',
-    category: 'Other' as CategoryType,
+    category: 'other' as CategoryType,
     dueDay: 1,
     isRecurring: true,
     reminderDays: 3

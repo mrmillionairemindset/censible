@@ -12,6 +12,14 @@ const FinancialHealth: React.FC<FinancialHealthProps> = ({
   financialSummary,
   financialHealth
 }) => {
+  console.log('🏥 FinancialHealth Component Rendering:', {
+    financialSummary,
+    financialHealth,
+    expenses: financialSummary.totalMonthlyExpenses,
+    income: financialSummary.totalMonthlyIncome,
+    score: financialHealth.score
+  });
+
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-600';
     if (score >= 60) return 'text-yellow-600';

@@ -76,12 +76,24 @@ function budgetReducer(state: BudgetState, action: BudgetAction): BudgetState {
         id: uuidv4(),
       };
 
+      console.log('🔄 ADD_TRANSACTION:', {
+        transaction: newTransaction,
+        currentCategories: state.budget.categories,
+        currentTotalSpent: state.budget.categories.reduce((sum, cat) => sum + cat.spent, 0)
+      });
+
       const updatedCategories = state.budget.categories.map(cat => {
+        console.log(`🔍 Checking category: "${cat.category}" vs transaction category: "${newTransaction.category}"`);
         if (cat.category === newTransaction.category) {
-          return { ...cat, spent: cat.spent + newTransaction.amount };
+          const newSpent = cat.spent + newTransaction.amount;
+          console.log(`💰 MATCH! Updating ${cat.category}: ${cat.spent} → ${newSpent} (+${newTransaction.amount})`);
+          return { ...cat, spent: newSpent };
         }
         return cat;
       });
+
+      const newTotalSpent = updatedCategories.reduce((sum, cat) => sum + cat.spent, 0);
+      console.log(`📊 Total spent after transaction: ${newTotalSpent}`);
 
       return {
         ...state,
@@ -254,33 +266,46 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children, userId
         // Perform migration from global to user-specific data
         UserStorage.migrateGlobalData(userId);
 
-        // Load saved budget
+        // Load saved budget (but we'll recalculate spent amounts from transactions)
         const savedBudget = userStorage.getBudget();
         console.log('💰 Loading saved budget:', savedBudget);
-        if (savedBudget) {
-          dispatch({ type: 'UPDATE_BUDGET', payload: savedBudget });
-        }
 
-        // Load transactions and recalculate spent amounts
+        // Load transactions first to calculate accurate spent amounts
         const savedTransactions = userStorage.getTransactions();
         console.log('💳 Loaded transactions:', savedTransactions);
-        if (savedTransactions) {
-          // First, reset all category spent amounts to 0
-          defaultCategories.forEach(cat => {
-            dispatch({ type: 'UPDATE_CATEGORY_SPENT', payload: { category: cat.category, amount: 0 } });
-          });
 
-          // Then recalculate spent amounts from transactions
-          const spentByCategory: Record<string, number> = {};
+        // Calculate spent amounts from transactions
+        const spentByCategory: Record<string, number> = {};
+        if (savedTransactions) {
           savedTransactions.forEach((t: Transaction) => {
             spentByCategory[t.category] = (spentByCategory[t.category] || 0) + t.amount;
           });
+        }
 
-          // Update each category's spent amount
-          Object.entries(spentByCategory).forEach(([category, amount]) => {
-            dispatch({ type: 'UPDATE_CATEGORY_SPENT', payload: { category: category as CategoryType, amount } });
+        // Update budget with correct spent amounts
+        if (savedBudget) {
+          // Reset spent amounts to calculated values from transactions
+          const categoriesWithCorrectSpent = savedBudget.categories.map(cat => ({
+            ...cat,
+            spent: spentByCategory[cat.category] || 0
+          }));
+
+          dispatch({ type: 'UPDATE_BUDGET', payload: {
+            ...savedBudget,
+            categories: categoriesWithCorrectSpent
+          }});
+        } else {
+          // No saved budget, just update spent amounts for default categories
+          defaultCategories.forEach(cat => {
+            dispatch({ type: 'UPDATE_CATEGORY_SPENT', payload: {
+              category: cat.category,
+              amount: spentByCategory[cat.category] || 0
+            }});
           });
+        }
 
+        // Set transactions
+        if (savedTransactions) {
           dispatch({ type: 'SET_TRANSACTIONS', payload: savedTransactions });
         }
 

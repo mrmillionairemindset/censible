@@ -21,7 +21,12 @@ export const calculateTotalMonthlyIncome = (incomeSources: IncomeSource[]): numb
 
 // Calculate total monthly expenses from budget categories
 export const calculateTotalMonthlyExpenses = (categories: BudgetCategory[]): number => {
-  return categories.reduce((total, category) => total + category.spent, 0);
+  const total = categories.reduce((sum, category) => {
+    console.log(`📊 Category ${category.category}: spent ${category.spent}`);
+    return sum + category.spent;
+  }, 0);
+  console.log(`💸 Total Monthly Expenses: ${total}`);
+  return total;
 };
 
 // Calculate total monthly savings target from active goals
