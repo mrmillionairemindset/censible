@@ -175,7 +175,7 @@ const IncomeTracker: React.FC = () => {
 
         <button
           onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-2 h-11 px-6 bg-[#27AE60] text-white rounded-full hover:bg-[#229954] transition-colors font-medium shadow-sm"
+          className="flex items-center gap-2 h-11 px-6 bg-[#27AE60] text-white rounded-lg hover:bg-[#229954] transition-colors font-medium shadow-sm"
         >
           <Plus className="w-4 h-4" />
           Income

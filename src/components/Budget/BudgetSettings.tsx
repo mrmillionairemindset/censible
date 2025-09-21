@@ -124,7 +124,7 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({
   const handleAddCategory = () => {
     if (newCategory.name.trim()) {
       const formattedName = formatCategoryName(newCategory.name);
-      const categoryKey = formattedName.toLowerCase().replace(/[^a-z0-9]/g, '') as CategoryType;
+      const categoryKey = formattedName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') as CategoryType;
       const uniqueColor = getColorForCategory(formattedName, budgetCategories);
       const category: CustomCategory = {
         category: categoryKey,
@@ -162,7 +162,7 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({
 
   const handleQuickAdd = (suggested: SuggestedCategory) => {
     const formattedName = formatCategoryName(suggested.name);
-    const categoryKey = formattedName.toLowerCase().replace(/[^a-z0-9]/g, '') as CategoryType;
+    const categoryKey = formattedName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') as CategoryType;
     const exists = budgetCategories.some(cat =>
       cat.category === categoryKey
     );

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Target, Plus, Edit3, Trash2, Calendar, ArrowUp, ArrowDown, Info, AlertTriangle } from 'lucide-react';
-import { SavingsGoal, SavingsGoalCategory, SavingsGoalCategoryLabels, SavingsGoalCategoryIcons } from '../../types';
+import { SavingsGoal, SavingsGoalCategory, SavingsGoalCategoryInput, SavingsGoalCategoryLabels, SavingsGoalCategoryIcons } from '../../types';
 import toast from 'react-hot-toast';
 import { v4 as uuidv4 } from 'uuid';
 import { useBudget } from '../../contexts/BudgetContext';
@@ -33,7 +33,7 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
     name: '',
     targetAmount: '',
     targetDate: '',
-    category: 'custom' as SavingsGoalCategory,
+    category: undefined as SavingsGoalCategoryInput,
     description: '',
     priority: 1
   });
@@ -89,8 +89,8 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
   const totalProgress = totalTargetAmount > 0 ? (totalCurrentAmount / totalTargetAmount) * 100 : 0;
 
   const handleAddGoal = () => {
-    if (!newGoal.name || !newGoal.targetAmount) {
-      toast.error('Please fill in all required fields');
+    if (!newGoal.name || !newGoal.targetAmount || !newGoal.category) {
+      toast.error('Please fill in all required fields including category');
       return;
     }
 
@@ -102,7 +102,7 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
       targetAmount: parseFloat(newGoal.targetAmount),
       currentAmount: 0,
       targetDate: newGoal.targetDate ? new Date(newGoal.targetDate) : new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
-      category: newGoal.category,
+      category: newGoal.category as SavingsGoalCategory,
       priority: newGoal.priority || (savingsGoals.length + 1),
       description: newGoal.description || undefined,
       isActive: true
@@ -118,7 +118,7 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
       name: '',
       targetAmount: '',
       targetDate: '',
-      category: 'custom',
+      category: undefined,
       description: '',
       priority: 1
     });
@@ -154,8 +154,8 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
   };
 
   const handleUpdateGoal = () => {
-    if (!editingGoal || !newGoal.name || !newGoal.targetAmount || !newGoal.targetDate) {
-      toast.error('Please fill in all required fields');
+    if (!editingGoal || !newGoal.name || !newGoal.targetAmount || !newGoal.targetDate || !newGoal.category) {
+      toast.error('Please fill in all required fields including category');
       return;
     }
 
@@ -164,7 +164,7 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
       name: newGoal.name,
       targetAmount: parseFloat(newGoal.targetAmount),
       targetDate: new Date(newGoal.targetDate),
-      category: newGoal.category,
+      category: newGoal.category as SavingsGoalCategory,
       description: newGoal.description || undefined,
       priority: newGoal.priority
     };
@@ -287,7 +287,7 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
 
         <button
           onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-2 h-11 px-6 bg-[#27AE60] text-white rounded-full hover:bg-[#229954] transition-colors font-medium shadow-sm"
+          className="flex items-center gap-2 h-11 px-6 bg-[#27AE60] text-white rounded-lg hover:bg-[#229954] transition-colors font-medium shadow-sm"
         >
           <Plus className="w-4 h-4" />
           Goal
@@ -663,9 +663,10 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
                       </label>
                       <select
                         className="w-full p-3 border border-gray-200 rounded-lg focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
-                        value={newGoal.category}
-                        onChange={(e) => setNewGoal({...newGoal, category: e.target.value as SavingsGoalCategory})}
+                        value={newGoal.category || ''}
+                        onChange={(e) => setNewGoal({...newGoal, category: e.target.value ? e.target.value as SavingsGoalCategory : undefined})}
                       >
+                        <option value="">Select a category...</option>
                         {Object.entries(SavingsGoalCategoryLabels).map(([key, label]) => (
                           <option key={key} value={key}>
                             {SavingsGoalCategoryIcons[key as SavingsGoalCategory]} {label}

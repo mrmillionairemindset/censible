@@ -40,9 +40,9 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
       return specialCases[normalizedName];
     }
 
-    // Otherwise, capitalize each word
+    // For custom categories, convert hyphens to spaces and capitalize
     return name
-      .split(' ')
+      .split('-')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ');
   };

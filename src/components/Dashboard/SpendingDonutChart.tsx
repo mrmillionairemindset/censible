@@ -44,9 +44,9 @@ const SpendingDonutChart: React.FC = () => {
       return specialCases[normalizedName];
     }
 
-    // Otherwise, capitalize each word from the category key
+    // For custom categories, convert hyphens to spaces and capitalize
     return category
-      .split(/[-_]/) // Split on hyphens and underscores
+      .split('-')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ');
   };

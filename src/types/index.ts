@@ -164,6 +164,7 @@ export interface IncomeSource {
 }
 
 export type SavingsGoalCategory = 'emergency-fund' | 'vacation' | 'major-purchase' | 'retirement' | 'custom';
+export type SavingsGoalCategoryInput = SavingsGoalCategory | undefined;
 
 export interface SavingsGoal {
   id: string;
