@@ -56,9 +56,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
   const getStatusColor = () => {
     if (percentage > 100) return 'bg-red-50 border-red-200';
     if (percentage === 100) return 'bg-blue-50 border-blue-200';
-    if (percentage >= 90) return 'bg-amber-50 border-amber-200';
-    if (percentage >= 70) return 'bg-yellow-50 border-yellow-200';
-    return 'bg-white border-gray-200';
+    return 'bg-green-50 border-green-200';
   };
 
   const getStatusText = () => {
@@ -87,20 +85,22 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
         isSelected ? 'border-mint-500 shadow-lg' : ''
       }`}
     >
-      {/* Status Badge */}
-      {percentage >= 90 && (
-        <motion.div
-          initial={{ scale: 0, rotate: -10 }}
-          animate={{ scale: 1, rotate: 0 }}
-          className="absolute -top-2 -right-2 z-10"
-        >
-          <div className={`px-1.5 py-0.5 rounded-full text-xs font-semibold ${
-            percentage >= 100 ? 'bg-red-500 text-white' : 'bg-amber-500 text-white'
-          }`}>
-            {percentage >= 100 ? '!' : '⚠'}
-          </div>
-        </motion.div>
-      )}
+      {/* Status Badge - Always show for all budget states */}
+      <motion.div
+        initial={{ scale: 0, rotate: -10 }}
+        animate={{ scale: 1, rotate: 0 }}
+        className="absolute -top-2 -right-2 z-10"
+      >
+        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
+          percentage > 100
+            ? 'bg-red-500 text-white'
+            : percentage === 100
+              ? 'bg-blue-500 text-white'
+              : 'bg-green-500 text-white'
+        }`}>
+          {percentage > 100 ? '⚠️' : '✅'}
+        </div>
+      </motion.div>
 
       {/* Vertical Layout: Ring on Top, Details Below */}
       <div className="flex flex-col items-center flex-1">

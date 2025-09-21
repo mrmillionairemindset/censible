@@ -11,7 +11,7 @@ interface BudgetRingProps {
 }
 
 const BudgetRing: React.FC<BudgetRingProps> = ({ category, spent, allocated, color, onClick }) => {
-  const percentage = allocated > 0 ? Math.min((spent / allocated) * 100, 100) : 0;
+  const percentage = allocated > 0 ? (spent / allocated) * 100 : 0;
   const [displayPercentage, setDisplayPercentage] = useState(0);
   const [displayAmount, setDisplayAmount] = useState(0);
   const controls = useAnimation();
@@ -20,7 +20,7 @@ const BudgetRing: React.FC<BudgetRingProps> = ({ category, spent, allocated, col
   const strokeWidth = 8;
   const normalizedRadius = radius - strokeWidth / 2;
   const circumference = normalizedRadius * 2 * Math.PI;
-  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+  const strokeDashoffset = circumference - (Math.min(percentage, 100) / 100) * circumference;
 
   useEffect(() => {
     // Animate the ring
@@ -64,9 +64,9 @@ const BudgetRing: React.FC<BudgetRingProps> = ({ category, spent, allocated, col
   }, [percentage, spent, strokeDashoffset, controls]);
 
   const getRingColor = () => {
-    if (percentage >= 90) return '#EF4444'; // Red
-    if (percentage >= 70) return '#F59E0B'; // Amber
-    return color;
+    if (percentage > 100) return '#EF4444'; // Red for over budget
+    if (percentage === 100) return '#3B82F6'; // Blue for exactly on budget
+    return '#10B981'; // Green for under budget
   };
 
   const shouldPulse = percentage >= 90;

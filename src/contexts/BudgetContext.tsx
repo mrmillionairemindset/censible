@@ -292,17 +292,62 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children, userId
           });
         }
 
+        // Color palette for custom categories (same as BudgetSettings)
+        const colorPalette = [
+          '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
+          '#EC4899', '#14B8A6', '#F97316', '#84CC16', '#6366F1',
+          '#06B6D4', '#A855F7', '#D946EF', '#F43F5E', '#22C55E',
+          '#FACC15', '#FB923C', '#8B5CF6', '#6B7280', '#4B5563'
+        ];
+
+        // Function to assign unique colors to categories without proper colors
+        const ensureCategoryColors = (categories: BudgetCategory[]): BudgetCategory[] => {
+          const usedColors = new Set<string>();
+
+          return categories.map(cat => {
+            // If category already has a valid color (not gray), keep it
+            if (cat.color && cat.color !== '#6B7280' && !usedColors.has(cat.color)) {
+              usedColors.add(cat.color);
+              return cat;
+            }
+
+            // Find a unique color for this category
+            let hash = 0;
+            const categoryName = cat.category;
+            for (let i = 0; i < categoryName.length; i++) {
+              const char = categoryName.charCodeAt(i);
+              hash = ((hash << 5) - hash) + char;
+              hash = hash & hash;
+            }
+
+            const index = Math.abs(hash) % colorPalette.length;
+            let color = colorPalette[index];
+            let colorIndex = index;
+
+            // Find next available color if this one is taken
+            while (usedColors.has(color) && colorIndex < colorPalette.length * 2) {
+              colorIndex = (colorIndex + 1) % colorPalette.length;
+              color = colorPalette[colorIndex];
+            }
+
+            usedColors.add(color);
+            return { ...cat, color };
+          });
+        };
+
         // Update budget with correct spent amounts
         if (savedBudget) {
-          // Reset spent amounts to calculated values from transactions
+          // Reset spent amounts to calculated values from transactions and ensure colors
           const categoriesWithCorrectSpent = savedBudget.categories.map(cat => ({
             ...cat,
             spent: spentByCategory[cat.category] || 0
           }));
 
+          const categoriesWithColors = ensureCategoryColors(categoriesWithCorrectSpent);
+
           dispatch({ type: 'UPDATE_BUDGET', payload: {
             ...savedBudget,
-            categories: categoriesWithCorrectSpent
+            categories: categoriesWithColors
           }});
         } else {
           // No saved budget, just update spent amounts for default categories

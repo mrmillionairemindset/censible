@@ -23,6 +23,33 @@ interface ActiveCategory {
 
 const SpendingDonutChart: React.FC = () => {
   const { budget, setCategoryFilter, getRemainingBudget, getTotalSpent } = useBudget();
+
+  // Format category names for display (handles both predefined and custom categories)
+  const formatCategoryDisplayName = (category: CategoryType): string => {
+    // Try predefined labels first
+    if (CategoryLabels[category]) {
+      return CategoryLabels[category];
+    }
+
+    // Handle special cases for custom categories
+    const specialCases: Record<string, string> = {
+      'creditcards': 'Credit Cards',
+      'debtpayments': 'Debt Payments',
+      'givingcharity': 'Giving/Charity',
+      'personalcare': 'Personal Care'
+    };
+
+    const normalizedName = category.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (specialCases[normalizedName]) {
+      return specialCases[normalizedName];
+    }
+
+    // Otherwise, capitalize each word from the category key
+    return category
+      .split(/[-_]/) // Split on hyphens and underscores
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
   const [selectedSegment, setSelectedSegment] = useState<CategoryType | null>(null);
   const [hoveredSegment, setHoveredSegment] = useState<CategoryType | null>(null);
   const [animatedData, setAnimatedData] = useState<ChartData[]>([]);
@@ -34,7 +61,7 @@ const SpendingDonutChart: React.FC = () => {
   useEffect(() => {
     // Show all categories with their allocated amounts, not spent amounts
     const data: ChartData[] = budget.categories.map(cat => ({
-      name: CategoryLabels[cat.category],
+      name: formatCategoryDisplayName(cat.category),
       value: cat.allocated, // Show allocated budget, not spent
       category: cat.category,
       color: cat.color,

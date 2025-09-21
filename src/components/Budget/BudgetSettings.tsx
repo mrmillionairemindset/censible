@@ -27,6 +27,40 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({
   onSave,
   onClose
 }) => {
+  // Color palette for custom categories
+  const colorPalette = [
+    '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
+    '#EC4899', '#14B8A6', '#F97316', '#84CC16', '#6366F1',
+    '#06B6D4', '#A855F7', '#D946EF', '#F43F5E', '#22C55E',
+    '#FACC15', '#FB923C', '#8B5CF6', '#6B7280', '#4B5563'
+  ];
+
+  // Get a unique color for a category
+  const getColorForCategory = (categoryName: string, existingCategories: BudgetCategory[]): string => {
+    // Get the index based on the category name for consistency
+    let hash = 0;
+    for (let i = 0; i < categoryName.length; i++) {
+      const char = categoryName.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+
+    // Use absolute value to ensure positive index
+    const index = Math.abs(hash) % colorPalette.length;
+    let color = colorPalette[index];
+
+    // Ensure the color isn't already in use by existing categories
+    const usedColors = existingCategories.map(cat => cat.color);
+    let colorIndex = index;
+
+    while (usedColors.includes(color) && colorIndex < colorPalette.length * 2) {
+      colorIndex = (colorIndex + 1) % colorPalette.length;
+      color = colorPalette[colorIndex];
+    }
+
+    return color;
+  };
+
   // Format category names for display
   const formatCategoryName = (name: string) => {
     // Handle special cases
@@ -91,11 +125,12 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({
     if (newCategory.name.trim()) {
       const formattedName = formatCategoryName(newCategory.name);
       const categoryKey = formattedName.toLowerCase().replace(/[^a-z0-9]/g, '') as CategoryType;
+      const uniqueColor = getColorForCategory(formattedName, budgetCategories);
       const category: CustomCategory = {
         category: categoryKey,
         allocated: parseFloat(newCategory.allocated.toString()) || 0,
         spent: 0,
-        color: '#6B7280', // Default gray color
+        color: uniqueColor,
         icon: newCategory.icon,
         isCustom: true
       };
@@ -133,11 +168,12 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({
     );
 
     if (!exists) {
+      const uniqueColor = getColorForCategory(formattedName, budgetCategories);
       const category: CustomCategory = {
         category: categoryKey,
         allocated: suggested.budget,
         spent: 0,
-        color: '#6B7280',
+        color: uniqueColor,
         icon: suggested.icon,
         isCustom: true
       };
