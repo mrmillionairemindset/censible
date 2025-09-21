@@ -98,7 +98,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
               ? 'bg-blue-500 text-white'
               : 'bg-green-500 text-white'
         }`}>
-          {percentage > 100 ? '⚠️' : '✅'}
+          {percentage > 100 ? '⚠️' : '✓'}
         </div>
       </motion.div>
 
