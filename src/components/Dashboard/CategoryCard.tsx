@@ -59,6 +59,12 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
     return 'bg-green-50 border-green-200';
   };
 
+  const getSelectedBorderColor = () => {
+    if (percentage > 100) return 'border-red-500';
+    if (percentage === 100) return 'border-blue-500';
+    return 'border-green-500';
+  };
+
   const getStatusText = () => {
     if (percentage > 100) return 'Over Budget!';
     if (percentage === 100) return 'Exactly on Budget';
@@ -82,7 +88,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
       className={`relative p-4 rounded-2xl border-2 transition-all duration-200 cursor-pointer h-[350px] flex flex-col justify-between ${getStatusColor()} ${
-        isSelected ? 'border-mint-500 shadow-lg' : ''
+        isSelected ? `${getSelectedBorderColor()} shadow-lg` : ''
       }`}
     >
       {/* Status Badge - Always show for all budget states */}
