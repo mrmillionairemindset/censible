@@ -241,12 +241,29 @@ export interface FinancialHealth {
   recommendations: string[];
 }
 
+export interface BudgetVariance {
+  category: string;
+  budgeted: number;
+  actual: number;
+  variance: number;
+  variancePercent: number;
+  status: 'under' | 'over' | 'on-target';
+}
+
 export interface FinancialSummary {
   totalMonthlyIncome: number;
   totalMonthlyExpenses: number;
   totalMonthlySavings: number;
   netCashFlow: number;
   disposableIncome: number;
+  // Budget performance tracking
+  totalBudgeted: number;
+  budgetVariance: number;
+  budgetVariancePercent: number;
+  expectedCashFlow: number;
+  actualCashFlow: number;
+  cashFlowVariance: number;
+  categoryVariances: BudgetVariance[];
 }
 
 export const IncomeFrequencyLabels: Record<IncomeFrequency, string> = {

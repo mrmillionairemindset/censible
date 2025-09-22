@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Shield, TrendingUp, AlertTriangle, CheckCircle, Info } from 'lucide-react';
+import { Shield, TrendingUp, AlertTriangle, CheckCircle, Info, Target, DollarSign } from 'lucide-react';
 import { FinancialHealth as FinancialHealthType, FinancialSummary } from '../../types';
 
 interface FinancialHealthProps {
@@ -8,9 +8,18 @@ interface FinancialHealthProps {
   financialHealth: FinancialHealthType;
 }
 
+interface FinancialHealthProps {
+  financialSummary: FinancialSummary;
+  financialHealth: FinancialHealthType;
+  onRingClick?: () => void;
+  isClickable?: boolean;
+}
+
 const FinancialHealth: React.FC<FinancialHealthProps> = ({
   financialSummary,
-  financialHealth
+  financialHealth,
+  onRingClick,
+  isClickable = false
 }) => {
   console.log('🏥 FinancialHealth Component Rendering:', {
     financialSummary,
@@ -75,7 +84,10 @@ const FinancialHealth: React.FC<FinancialHealthProps> = ({
 
       {/* Health Score Circle */}
       <div className="flex items-center justify-center mb-6">
-        <div className="relative w-32 h-32">
+        <div
+          className={`relative w-32 h-32 ${isClickable ? 'cursor-pointer transform transition-transform hover:scale-105' : ''}`}
+          onClick={isClickable ? onRingClick : undefined}
+        >
           <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 100 100">
             {/* Background circle */}
             <circle
@@ -98,6 +110,7 @@ const FinancialHealth: React.FC<FinancialHealthProps> = ({
               initial={{ strokeDasharray: "0 251.2" }}
               animate={{ strokeDasharray: `${Math.min(financialHealth.score / 100, 1.1) * 251.2} 251.2` }}
               transition={{ duration: 2, ease: "easeOut" }}
+              className={isClickable ? 'filter drop-shadow-sm' : ''}
             />
             <defs>
               <linearGradient id="healthGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -145,6 +158,9 @@ const FinancialHealth: React.FC<FinancialHealthProps> = ({
               {financialHealth.score}
             </p>
             <p className="text-xs text-gray-600">/ 100</p>
+            {isClickable && (
+              <p className="text-[8px] text-gray-400 mt-1">Click to explore</p>
+            )}
           </div>
         </div>
       </div>
@@ -213,26 +229,6 @@ const FinancialHealth: React.FC<FinancialHealthProps> = ({
         </div>
       </div>
 
-      {/* Recommendations */}
-      {financialHealth.recommendations.length > 0 && (
-        <div>
-          <h3 className="font-medium text-gray-800 mb-3">Recommendations</h3>
-          <div className="space-y-2">
-            {financialHealth.recommendations.map((recommendation, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-100 rounded-lg"
-              >
-                <Info className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                <p className="text-sm text-amber-800">{recommendation}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      )}
     </motion.div>
   );
 };

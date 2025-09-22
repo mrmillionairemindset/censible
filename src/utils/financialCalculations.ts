@@ -30,6 +30,44 @@ export const calculateTotalMonthlyExpenses = (categories: BudgetCategory[]): num
   return total;
 };
 
+// Calculate total budgeted amount from categories
+export const calculateTotalBudgeted = (categories: BudgetCategory[]): number => {
+  return categories.reduce((sum, category) => sum + category.allocated, 0);
+};
+
+// Calculate budget variance for each category
+export const calculateBudgetVariances = (categories: BudgetCategory[]): Array<{
+  category: string;
+  budgeted: number;
+  actual: number;
+  variance: number;
+  variancePercent: number;
+  status: 'under' | 'over' | 'on-target';
+}> => {
+  return categories.map(cat => {
+    const variance = cat.spent - cat.allocated;
+    const variancePercent = cat.allocated > 0 ? (variance / cat.allocated) * 100 : 0;
+
+    let status: 'under' | 'over' | 'on-target' = 'on-target';
+    if (Math.abs(variancePercent) <= 5) {
+      status = 'on-target';
+    } else if (variance < 0) {
+      status = 'under';
+    } else {
+      status = 'over';
+    }
+
+    return {
+      category: cat.category,
+      budgeted: cat.allocated,
+      actual: cat.spent,
+      variance,
+      variancePercent,
+      status
+    };
+  }).filter(item => item.budgeted > 0); // Only show categories with budget
+};
+
 // Calculate total monthly savings target from active goals
 export const calculateTotalMonthlySavingsTarget = (savingsGoals: SavingsGoal[]): number => {
   const today = new Date();
@@ -65,12 +103,33 @@ export const generateFinancialSummary = (
   const netCashFlow = totalMonthlyIncome - totalMonthlyExpenses;
   const disposableIncome = totalMonthlyIncome - totalMonthlyExpenses;
 
+  // Budget performance calculations
+  const totalBudgeted = calculateTotalBudgeted(categories);
+  const budgetVariance = totalMonthlyExpenses - totalBudgeted;
+  const budgetVariancePercent = totalBudgeted > 0 ? (budgetVariance / totalBudgeted) * 100 : 0;
+
+  // Cash flow comparison
+  const expectedCashFlow = totalMonthlyIncome - totalBudgeted;
+  const actualCashFlow = totalMonthlyIncome - totalMonthlyExpenses;
+  const cashFlowVariance = actualCashFlow - expectedCashFlow;
+
+  // Category-level variances
+  const categoryVariances = calculateBudgetVariances(categories);
+
   return {
     totalMonthlyIncome,
     totalMonthlyExpenses,
     totalMonthlySavings,
     netCashFlow,
-    disposableIncome
+    disposableIncome,
+    // Budget performance
+    totalBudgeted,
+    budgetVariance,
+    budgetVariancePercent,
+    expectedCashFlow,
+    actualCashFlow,
+    cashFlowVariance,
+    categoryVariances
   };
 };
 

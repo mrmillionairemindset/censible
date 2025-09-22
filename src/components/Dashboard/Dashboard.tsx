@@ -12,7 +12,7 @@ import BillManager from '../Bills/BillManager';
 import BudgetSettings from '../Budget/BudgetSettings';
 import IncomeTracker from '../Income/IncomeTracker';
 import SavingsGoals from '../Savings/SavingsGoals';
-import FinancialHealth from '../Financial/FinancialHealth';
+import FinancialOverview from '../Financial/FinancialOverview';
 import { CategoryType, CoreCategories } from '../../types';
 import { staggerContainer, staggerItem } from '../../utils/animations';
 import { useBillNotifications } from '../../hooks/useBillNotifications';
@@ -235,32 +235,32 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Income, Savings & Financial Health Section */}
+        {/* Income & Savings Section */}
         <div className="mt-12">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">Financial Overview</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-6">Income & Savings</h2>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Income Tracker */}
-            <div className="lg:col-span-1">
+            <div>
               <IncomeTracker />
             </div>
 
             {/* Savings Goals */}
-            <div className="lg:col-span-1">
+            <div>
               <SavingsGoals
                 totalMonthlyIncome={financialSummary.totalMonthlyIncome}
                 totalMonthlyExpenses={financialSummary.totalMonthlyExpenses}
               />
             </div>
-
-            {/* Financial Health */}
-            <div className="lg:col-span-2 xl:col-span-1">
-              <FinancialHealth
-                financialSummary={financialSummary}
-                financialHealth={financialHealth}
-              />
-            </div>
           </div>
+        </div>
+
+        {/* Financial Overview Section */}
+        <div className="mt-12">
+          <FinancialOverview
+            financialSummary={financialSummary}
+            financialHealth={financialHealth}
+          />
         </div>
       </div>
 
