@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useBudget } from '../../contexts/BudgetContext';
+import { useBudget } from '../../contexts/BudgetContextSupabase';
 import TransactionCard from './TransactionCard';
 import { Transaction, CategoryType, CategoryLabels } from '../../types';
 import { Search, Filter, Download, TrendingDown, TrendingUp, X } from 'lucide-react';

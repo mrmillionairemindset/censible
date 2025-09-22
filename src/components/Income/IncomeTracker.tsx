@@ -4,7 +4,7 @@ import { DollarSign, Plus, Edit3, Trash2, ToggleLeft, ToggleRight, TrendingUp } 
 import { IncomeSource, IncomeFrequency, IncomeFrequencyLabels } from '../../types';
 import toast from 'react-hot-toast';
 import { v4 as uuidv4 } from 'uuid';
-import { useBudget } from '../../contexts/BudgetContext';
+import { useBudget } from '../../contexts/BudgetContextSupabase';
 
 const IncomeTracker: React.FC = () => {
   const { incomeSources, setIncomeSources } = useBudget();

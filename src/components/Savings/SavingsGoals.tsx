@@ -4,7 +4,8 @@ import { Target, Plus, Edit3, Trash2, Calendar, ArrowUp, ArrowDown, Info, AlertT
 import { SavingsGoal, SavingsGoalCategory, SavingsGoalCategoryInput, SavingsGoalCategoryLabels, SavingsGoalCategoryIcons } from '../../types';
 import toast from 'react-hot-toast';
 import { v4 as uuidv4 } from 'uuid';
-import { useBudget } from '../../contexts/BudgetContext';
+import { useBudget } from '../../contexts/BudgetContextSupabase';
+import { toDateSafe, monthsBetween } from '../../utils/dates';
 
 interface SavingsGoalsProps {
   totalMonthlyIncome?: number;
@@ -65,10 +66,12 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
   };
 
   const calculateRequiredMonthlySavings = (goal: SavingsGoal): number => {
-    const remaining = goal.targetAmount - goal.currentAmount;
-    const monthsLeft = Math.ceil((goal.targetDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24 * 30));
+    const targetDate = toDateSafe(goal.targetDate);
+    if (!targetDate) return 0;
 
-    if (monthsLeft <= 0) return remaining; // Need to save all remaining immediately
+    const remaining = goal.targetAmount - goal.currentAmount;
+    const monthsLeft = monthsBetween(new Date(), targetDate);
+
     return remaining / monthsLeft;
   };
 
@@ -145,7 +148,7 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
     setNewGoal({
       name: goal.name,
       targetAmount: goal.targetAmount.toString(),
-      targetDate: goal.targetDate.toISOString().split('T')[0],
+      targetDate: toDateSafe(goal.targetDate) ? toDateSafe(goal.targetDate)!.toISOString().split('T')[0] : '',
       category: goal.category,
       description: goal.description || '',
       priority: goal.priority
@@ -328,7 +331,8 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({
             const remaining = goal.targetAmount - goal.currentAmount;
             const requiredMonthlySavings = calculateRequiredMonthlySavings(goal);
             const monthsToGoal = calculateMonthsToGoal(goal);
-            const daysUntilTarget = Math.ceil((goal.targetDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+            const targetDate = toDateSafe(goal.targetDate);
+            const daysUntilTarget = targetDate ? Math.ceil((targetDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0;
             const isFirst = index === 0;
             const isLast = index === sortedGoals.length - 1;
 

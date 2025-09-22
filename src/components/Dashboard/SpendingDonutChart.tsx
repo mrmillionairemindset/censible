@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useBudget } from '../../contexts/BudgetContext';
-import { CategoryType, CategoryLabels } from '../../types';
+import { useBudget } from '../../contexts/BudgetContextSupabase';
+import { CategoryType, CategoryLabels, CoreCategories } from '../../types';
 import { scaleIn } from '../../utils/animations';
 
 interface ChartData {
@@ -59,14 +59,16 @@ const SpendingDonutChart: React.FC = () => {
   const totalSpent = getTotalSpent();
 
   useEffect(() => {
-    // Show all categories with their allocated amounts, not spent amounts
-    const data: ChartData[] = budget.categories.map(cat => ({
-      name: formatCategoryDisplayName(cat.category),
-      value: cat.allocated, // Show allocated budget, not spent
-      category: cat.category,
-      color: cat.color,
-      percentage: (cat.allocated / budget.totalBudget) * 100,
-    }));
+    // Show all categories with allocated budgets greater than 0
+    const data: ChartData[] = budget.categories
+      .filter(cat => cat.allocated > 0)
+      .map(cat => ({
+        name: formatCategoryDisplayName(cat.category),
+        value: cat.allocated, // Show allocated budget, not spent
+        category: cat.category,
+        color: cat.color,
+        percentage: (cat.allocated / budget.totalBudget) * 100,
+      }));
 
     // Animate data changes
     setAnimatedData(data);

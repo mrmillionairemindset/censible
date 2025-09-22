@@ -16,6 +16,7 @@ export type CategoryType =
   | 'personal-care'
   | 'investments'
   | 'subscriptions'
+  | 'miscellaneous'
   | 'other';
 
 export interface Transaction {
@@ -35,6 +36,7 @@ export interface BudgetCategory {
   spent: number;
   color: string;
   icon: string;
+  isCustom?: boolean;
 }
 
 export interface Budget {
@@ -104,6 +106,7 @@ export const CategoryColors: Record<CategoryType, string> = {
   'personal-care': '#EA580C',
   investments: '#065F46',
   subscriptions: '#4338CA',
+  miscellaneous: '#9333EA',
   other: '#6B7280'
 };
 
@@ -125,6 +128,7 @@ export const CategoryIcons: Record<CategoryType, string> = {
   'personal-care': '✨',
   investments: '📈',
   subscriptions: '📱',
+  miscellaneous: '📌',
   other: '📦'
 };
 
@@ -146,7 +150,58 @@ export const CategoryLabels: Record<CategoryType, string> = {
   'personal-care': 'Personal Care',
   investments: 'Investments',
   subscriptions: 'Subscriptions',
+  miscellaneous: 'Miscellaneous',
   other: 'Other'
+};
+
+// Core Categories: Essential categories that auto-start for all users
+export const CoreCategories: CategoryType[] = [
+  'groceries',
+  'housing',
+  'transportation',
+  'utilities',
+  'dining',
+  'shopping',
+  'debt-payments',
+  'insurance'
+];
+
+// Quick Add Suggestions: Lifestyle-dependent categories users can add as needed
+export const QuickAddCategories: CategoryType[] = [
+  'entertainment',
+  'subscriptions',
+  'giving-charity',
+  'savings',
+  'education',
+  'personal-care',
+  'medical',
+  'investments',
+  'credit-cards',
+  'other'
+];
+
+// Quick Add category descriptions for UI
+export const QuickAddDescriptions: Record<CategoryType, string> = {
+  entertainment: 'Some users roll this into Dining/Shopping, others keep it separate.',
+  subscriptions: 'Great optional category for streamers/gamers but not critical for everyone.',
+  'giving-charity': 'Important but optional — add when you want to track tithing/donations.',
+  savings: 'Only relevant if user actively budgets toward goals.',
+  education: 'Tuition/lessons aren\'t universal — quick add makes sense.',
+  'personal-care': 'Haircuts, nails, gym — lifestyle-based.',
+  medical: 'Some users prefer a dedicated bucket, others treat it as "Other."',
+  investments: 'Only relevant for users actively funding brokerage/retirement accounts.',
+  'credit-cards': 'Track credit card payments separate from debt payments.',
+  miscellaneous: 'For expenses that don\'t fit other categories.',
+  other: 'Keep this as a catch-all fallback.',
+  // Core categories don't need descriptions as they're always available
+  groceries: '',
+  housing: '',
+  transportation: '',
+  utilities: '',
+  dining: '',
+  shopping: '',
+  'debt-payments': '',
+  insurance: ''
 };
 
 // Income and Savings Types

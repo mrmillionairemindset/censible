@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { X, DollarSign, Plus, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { BudgetCategory, CategoryType, CategoryLabels, CategoryIcons } from '../../types';
+import { getUniqueColor } from '../../utils/categoryColors';
 import toast from 'react-hot-toast';
 
 interface BudgetSettingsProps {
   categories: BudgetCategory[];
   totalBudget: number;
   onSave: (updatedCategories: BudgetCategory[], newTotalBudget: number) => void;
+  onDelete?: (category: CategoryType) => Promise<void>;
   onClose: () => void;
 }
 
@@ -25,6 +27,7 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({
   categories,
   totalBudget,
   onSave,
+  onDelete,
   onClose
 }) => {
   // Color palette for custom categories
@@ -37,28 +40,8 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({
 
   // Get a unique color for a category
   const getColorForCategory = (categoryName: string, existingCategories: BudgetCategory[]): string => {
-    // Get the index based on the category name for consistency
-    let hash = 0;
-    for (let i = 0; i < categoryName.length; i++) {
-      const char = categoryName.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32bit integer
-    }
-
-    // Use absolute value to ensure positive index
-    const index = Math.abs(hash) % colorPalette.length;
-    let color = colorPalette[index];
-
-    // Ensure the color isn't already in use by existing categories
-    const usedColors = existingCategories.map(cat => cat.color);
-    let colorIndex = index;
-
-    while (usedColors.includes(color) && colorIndex < colorPalette.length * 2) {
-      colorIndex = (colorIndex + 1) % colorPalette.length;
-      color = colorPalette[colorIndex];
-    }
-
-    return color;
+    const usedColors = existingCategories.map(cat => cat.color).filter(Boolean);
+    return getUniqueColor(categoryName, usedColors);
   };
 
   // Format category names for display
@@ -94,19 +77,19 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({
     allocated: 0,
     icon: '📌'
   });
+  const [categoriesToDelete, setCategoriesToDelete] = useState<CategoryType[]>([]);
 
   // Predefined category suggestions
   const suggestedCategories: SuggestedCategory[] = [
-    { name: 'Debt Payments', icon: '💳', budget: 0 },
     { name: 'Credit Cards', icon: '💰', budget: 0 },
     { name: 'Giving/Charity', icon: '❤️', budget: 0 },
     { name: 'Savings', icon: '🏦', budget: 0 },
-    { name: 'Insurance', icon: '🛡️', budget: 0 },
     { name: 'Medical', icon: '🏥', budget: 0 },
     { name: 'Education', icon: '📚', budget: 0 },
     { name: 'Personal Care', icon: '✨', budget: 0 },
     { name: 'Investments', icon: '📈', budget: 0 },
-    { name: 'Subscriptions', icon: '📱', budget: 0 }
+    { name: 'Subscriptions', icon: '📱', budget: 0 },
+    { name: 'Miscellaneous', icon: '📦', budget: 0 }
   ];
 
   const handleBudgetChange = (category: CategoryType, value: string) => {
@@ -149,6 +132,8 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({
   const handleDeleteCategory = (category: CategoryType) => {
     const categoryToDelete = budgetCategories.find(cat => cat.category === category);
     if (categoryToDelete?.isCustom) {
+      // Just mark for deletion and remove from UI, don't delete from DB yet
+      setCategoriesToDelete([...categoriesToDelete, category]);
       const updatedCategories = budgetCategories.filter(cat => cat.category !== category);
       setBudgetCategories(updatedCategories);
 
@@ -156,7 +141,11 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({
       const newTotal = updatedCategories.reduce((sum, cat) => sum + cat.allocated, 0);
       setCalculatedTotal(newTotal);
 
-      toast.success('Category removed!');
+      toast('Category marked for removal (click Save to confirm)', {
+        icon: 'ℹ️',
+      });
+    } else {
+      toast.error('Core categories cannot be removed');
     }
   };
 
@@ -177,20 +166,38 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({
         icon: suggested.icon,
         isCustom: true
       };
-      setBudgetCategories([...budgetCategories, category]);
+
+      const updatedCategories = [...budgetCategories, category];
+      setBudgetCategories(updatedCategories);
 
       // Update total
       const newTotal = calculatedTotal + category.allocated;
       setCalculatedTotal(newTotal);
 
-      toast.success(`${formattedName} added!`);
+      // Don't auto-save, just update local state
+      toast(`${formattedName} added (click Save to confirm)`, {
+        icon: 'ℹ️',
+      });
     }
   };
 
-  const handleSave = () => {
-    onSave(budgetCategories, calculatedTotal);
-    toast.success('Budget updated successfully!');
-    onClose();
+  const handleSave = async () => {
+    try {
+      // First, delete categories marked for deletion
+      if (onDelete && categoriesToDelete.length > 0) {
+        for (const category of categoriesToDelete) {
+          await onDelete(category);
+        }
+      }
+
+      // Then save all budget changes
+      await onSave(budgetCategories, calculatedTotal);
+      toast.success('Budget updated successfully!');
+      onClose();
+    } catch (error) {
+      toast.error('Failed to save budget changes');
+      console.error('Error saving budget:', error);
+    }
   };
 
   const applyPreset = (presetName: string) => {
@@ -225,13 +232,19 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({
     toast.success(`Applied ${presetName} budget preset!`);
   };
 
+  const handleCancel = () => {
+    // Don't save any changes, just close
+    onClose();
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={handleCancel}>
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
         className="bg-white rounded-xl max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="p-6 border-b border-gray-200">
@@ -241,7 +254,7 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({
               <p className="text-sm text-gray-600">Manage your monthly budget allocations</p>
             </div>
             <button
-              onClick={onClose}
+              onClick={handleCancel}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <X size={20} className="text-gray-600" />
@@ -375,7 +388,8 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({
             <h3 className="font-medium mb-3 text-gray-700">Quick Add Suggestions</h3>
             <div className="flex flex-wrap gap-2">
               {suggestedCategories.map(suggested => {
-                const categoryKey = suggested.name.toLowerCase().replace(/[^a-z0-9]/g, '') as CategoryType;
+                const formattedName = formatCategoryName(suggested.name);
+                const categoryKey = formattedName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') as CategoryType;
                 const exists = budgetCategories.some(cat => cat.category === categoryKey);
                 return (
                   <button
@@ -441,7 +455,7 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({
               Save Changes
             </button>
             <button
-              onClick={onClose}
+              onClick={handleCancel}
               className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium transition-colors"
             >
               Cancel

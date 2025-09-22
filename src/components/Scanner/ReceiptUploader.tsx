@@ -3,9 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useDropzone } from 'react-dropzone';
 import { Camera, Upload, X, CheckCircle, AlertCircle, Loader } from 'lucide-react';
 import { useOCR } from '../../hooks/useOCR';
-import { useBudget } from '../../contexts/BudgetContext';
+import { useBudget } from '../../contexts/BudgetContextSupabase';
 import { categorizeTransaction } from '../../utils/categorizer';
-import { CategoryType, CategoryLabels, Transaction } from '../../types';
+import { CategoryType, CategoryLabels, Transaction, CoreCategories, QuickAddCategories } from '../../types';
 import { fadeIn, scaleIn } from '../../utils/animations';
 import toast from 'react-hot-toast';
 
@@ -231,11 +231,20 @@ const ReceiptUploader: React.FC<ReceiptUploaderProps> = ({ onClose, onSuccess })
             onChange={(e) => handleEdit('category', e.target.value as CategoryType)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-mint-500"
           >
-            {Object.entries(CategoryLabels).map(([key, label]) => (
-              <option key={key} value={key}>
-                {label}
-              </option>
-            ))}
+            <optgroup label="✅ Core Categories">
+              {CoreCategories.map((key) => (
+                <option key={key} value={key}>
+                  {CategoryLabels[key]}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="💡 Quick Add Suggestions">
+              {QuickAddCategories.map((key) => (
+                <option key={key} value={key}>
+                  {CategoryLabels[key]}
+                </option>
+              ))}
+            </optgroup>
           </select>
         </div>
 

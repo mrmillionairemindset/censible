@@ -1,4 +1,5 @@
 import { IncomeSource, IncomeFrequency, SavingsGoal, FinancialHealth, FinancialSummary, BudgetCategory } from '../types';
+import { toDateSafe, monthsBetween } from './dates';
 
 // Convert any income frequency to monthly amount
 export const convertToMonthly = (amount: number, frequency: IncomeFrequency): number => {
@@ -31,12 +32,16 @@ export const calculateTotalMonthlyExpenses = (categories: BudgetCategory[]): num
 
 // Calculate total monthly savings target from active goals
 export const calculateTotalMonthlySavingsTarget = (savingsGoals: SavingsGoal[]): number => {
+  const today = new Date();
   return savingsGoals
     .filter(goal => goal.isActive)
     .reduce((total, goal) => {
-      const remaining = goal.targetAmount - goal.currentAmount;
-      const monthsLeft = Math.ceil((goal.targetDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24 * 30));
-      if (monthsLeft <= 0) return total + remaining; // Need to save all remaining immediately
+      const targetDate = toDateSafe(goal.targetDate);
+      if (!targetDate) return total; // Skip if invalid target date
+
+      const remaining = Math.max(0, (goal.targetAmount ?? 0) - (goal.currentAmount ?? 0));
+      const monthsLeft = monthsBetween(today, targetDate);
+
       return total + (remaining / monthsLeft);
     }, 0);
 };
@@ -72,7 +77,8 @@ export const generateFinancialSummary = (
 // Calculate financial health score and generate recommendations
 export const calculateFinancialHealth = (
   financialSummary: FinancialSummary,
-  savingsGoals: SavingsGoal[]
+  savingsGoals: SavingsGoal[],
+  totalBudgetAllocated?: number
 ): FinancialHealth => {
   const { totalMonthlyIncome, totalMonthlyExpenses, disposableIncome } = financialSummary;
 
@@ -91,6 +97,13 @@ export const calculateFinancialHealth = (
   const incomeExpenseRatio = totalMonthlyIncome > 0 ? totalMonthlyIncome / totalMonthlyExpenses : 0;
   const savingsRate = totalMonthlyIncome > 0 ? (disposableIncome / totalMonthlyIncome) * 100 : 0;
   const emergencyFundWeeks = calculateEmergencyFundWeeks(savingsGoals, totalMonthlyExpenses / 4.33);
+
+  // Calculate emergency fund requirement based on total budget allocation
+  const monthlyBudgetForEmergency = totalBudgetAllocated || totalMonthlyExpenses;
+  const sixMonthEmergencyFund = monthlyBudgetForEmergency * 6;
+  const emergencyFund = savingsGoals.find(goal => goal.category === 'emergency-fund');
+  const currentEmergencyFund = emergencyFund?.currentAmount || 0;
+  const emergencyFundProgress = sixMonthEmergencyFund > 0 ? (currentEmergencyFund / sixMonthEmergencyFund) : 0;
 
   // Calculate health score (0-100)
   let score = 0;
@@ -147,18 +160,36 @@ export const calculateFinancialHealth = (
   // Bonus for extraordinarily rare performance
   if (financialSummary.netCashFlow >= totalMonthlyIncome * 0.50) score += 5; // Extremely rare bonus
 
+  // CRITICAL: Cap score at 90 if emergency fund is not met (6 months of budget allocation)
+  // 100% financial health requires a fully funded 6-month emergency fund
+  if (emergencyFundProgress < 1.0) {
+    // If emergency fund is less than 6 months of budget, max score is 90
+    score = Math.min(score, 90);
+  }
+
   // Generate recommendations
   const recommendations: string[] = [];
 
+  // PRIORITY: Emergency fund recommendation (required for 100% health)
+  if (emergencyFundProgress < 1.0) {
+    const remaining = sixMonthEmergencyFund - currentEmergencyFund;
+    if (currentEmergencyFund === 0) {
+      recommendations.push(`Start building your emergency fund. Goal: $${sixMonthEmergencyFund.toFixed(0)} (6 months of your $${monthlyBudgetForEmergency.toFixed(0)} monthly budget).`);
+    } else {
+      const percentComplete = Math.round(emergencyFundProgress * 100);
+      recommendations.push(`Emergency fund ${percentComplete}% complete. Need $${remaining.toFixed(0)} more to reach 100% financial health (6 months of expenses).`);
+    }
+  }
+
   // High performer recommendations (80%+ score)
   if (score >= 85) {
+    if (emergencyFundProgress >= 1.0) {
+      recommendations.push('Excellent! Your 6-month emergency fund is fully funded. Consider increasing to 9-12 months for extra security.');
+    }
     if (savingsRate > 50) {
       recommendations.push('Outstanding financial discipline! Consider diversifying investments or exploring tax-advantaged accounts.');
     }
-    if (emergencyFundWeeks < 26) {
-      recommendations.push('Consider building your emergency fund to 6+ months for ultimate security.');
-    }
-    if (activeGoals < 2) {
+    if (activeGoals < 2 && emergencyFundProgress >= 1.0) {
       recommendations.push('With your excellent savings rate, consider setting ambitious long-term financial goals.');
     }
   }

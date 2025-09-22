@@ -1,93 +1,18 @@
-import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter as Router } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { BudgetProvider } from './contexts/BudgetContext';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { BudgetProvider } from './contexts/BudgetContextSupabase';
+import AuthWrapper from './components/Auth/AuthWrapper';
 import Dashboard from './components/Dashboard/Dashboard';
-import ProtectedRoute from './components/ProtectedRoute';
-import Footer from './components/Footer';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
-import Privacy from './pages/Privacy';
-import Terms from './pages/Terms';
 import './App.css';
-
-const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#27AE60]"></div>
-      </div>
-    );
-  }
-
-  if (user) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  return <>{children}</>;
-};
-
-const DashboardWrapper: React.FC = () => {
-  const { user } = useAuth();
-
-  useEffect(() => {
-    // Generate demo data if no transactions exist and user is authenticated
-    if (user) {
-      // No demo data - users start fresh
-      console.log('👤 User logged in:', user.id);
-    }
-  }, [user]);
-
-  if (!user) return null;
-
-  return (
-    <BudgetProvider userId={user.id}>
-      <div className="App">
-        <Dashboard />
-      </div>
-    </BudgetProvider>
-  );
-};
-
-const AppContent: React.FC = () => {
-
-  return (
-    <div className="min-h-screen flex flex-col">
-      <div className="flex-1">
-        <Routes>
-          <Route path="/login" element={
-            <AuthRoute>
-              <Login />
-            </AuthRoute>
-          } />
-          <Route path="/signup" element={
-            <AuthRoute>
-              <Signup />
-            </AuthRoute>
-          } />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <DashboardWrapper />
-            </ProtectedRoute>
-          } />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </div>
-      <Footer />
-    </div>
-  );
-};
 
 function App() {
   return (
-    <AuthProvider>
+    <BudgetProvider>
       <Router>
-        <AppContent />
+        <AuthWrapper>
+          <Dashboard />
+        </AuthWrapper>
         <Toaster
           position="top-center"
           toastOptions={{
@@ -113,7 +38,7 @@ function App() {
           }}
         />
       </Router>
-    </AuthProvider>
+    </BudgetProvider>
   );
 }
 

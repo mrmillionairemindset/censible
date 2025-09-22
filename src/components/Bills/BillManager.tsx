@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, X, Plus, AlertCircle, Edit3, Trash2 } from 'lucide-react';
-import { useBudget } from '../../contexts/BudgetContext';
+import { useBudget } from '../../contexts/BudgetContextSupabase';
 import { CategoryType, CategoryLabels } from '../../types';
-import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 interface Bill {
@@ -23,8 +22,7 @@ interface BillManagerProps {
 }
 
 const BillManager: React.FC<BillManagerProps> = ({ onClose }) => {
-  const { addTransaction } = useBudget();
-  const { user } = useAuth();
+  const { addTransaction, user } = useBudget();
   const [bills, setBills] = useState<Bill[]>([]);
   const [hasLoadedBills, setHasLoadedBills] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);

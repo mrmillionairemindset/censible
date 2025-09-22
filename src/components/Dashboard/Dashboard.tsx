@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Settings, LogOut, User } from 'lucide-react';
-import { useBudget } from '../../contexts/BudgetContext';
-import { useAuth } from '../../contexts/AuthContext';
+import { useBudget } from '../../contexts/BudgetContextSupabase';
 import SpendingDonutChart from './SpendingDonutChart';
 import CategoryCard from './CategoryCard';
 import TransactionList from '../Transactions/TransactionList';
@@ -14,7 +13,7 @@ import BudgetSettings from '../Budget/BudgetSettings';
 import IncomeTracker from '../Income/IncomeTracker';
 import SavingsGoals from '../Savings/SavingsGoals';
 import FinancialHealth from '../Financial/FinancialHealth';
-import { CategoryType } from '../../types';
+import { CategoryType, CoreCategories } from '../../types';
 import { staggerContainer, staggerItem } from '../../utils/animations';
 import { useBillNotifications } from '../../hooks/useBillNotifications';
 // Logo will be loaded from public folder
@@ -26,11 +25,12 @@ const Dashboard: React.FC = () => {
     setCategoryFilter,
     selectedCategory,
     updateCategoryBudgets,
+    deleteCategory,
     financialSummary,
-    financialHealth
+    financialHealth,
+    user,
+    signOut
   } = useBudget();
-
-  const { user, signOut } = useAuth();
   const { getUrgentBillsCount } = useBillNotifications();
   const [showReceiptUploader, setShowReceiptUploader] = useState(false);
   const [showManualEntry, setShowManualEntry] = useState(false);
@@ -49,6 +49,11 @@ const Dashboard: React.FC = () => {
   const handleCategoryClick = (category: CategoryType) => {
     setCategoryFilter(selectedCategory === category ? undefined : category);
   };
+
+  // Calculate ALL categories totals for display (not just core)
+  const allTotalBudget = budget.categories.reduce((sum, cat) => sum + cat.allocated, 0);
+  const allTotalSpent = budget.categories.reduce((sum, cat) => sum + cat.spent, 0);
+  const allRemaining = allTotalBudget - allTotalSpent;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -72,7 +77,7 @@ const Dashboard: React.FC = () => {
               <div className="hidden md:flex gap-6">
                 <div className="text-center">
                   <p className="text-2xl font-bold text-mint-600">
-                    ${budget.totalBudget.toFixed(0)}
+                    ${allTotalBudget.toFixed(0)}
                   </p>
                   <p className="text-xs text-gray-500">Monthly Budget</p>
                 </div>
@@ -129,19 +134,19 @@ const Dashboard: React.FC = () => {
           <div className="grid grid-cols-3 gap-4 max-w-md mx-auto">
             <div className="text-center p-4 bg-white rounded-xl shadow-soft">
               <p className="text-2xl font-bold text-mint-600">
-                ${budget.totalBudget.toFixed(0)}
+                ${allTotalBudget.toFixed(0)}
               </p>
               <p className="text-xs text-gray-500">Total Budget</p>
             </div>
             <div className="text-center p-4 bg-white rounded-xl shadow-soft">
               <p className="text-2xl font-bold text-gray-800">
-                ${budget.categories.reduce((sum, cat) => sum + cat.spent, 0).toFixed(0)}
+                ${allTotalSpent.toFixed(0)}
               </p>
               <p className="text-xs text-gray-500">Spent</p>
             </div>
             <div className="text-center p-4 bg-white rounded-xl shadow-soft">
               <p className="text-2xl font-bold text-gold-600">
-                ${(budget.totalBudget - budget.categories.reduce((sum, cat) => sum + cat.spent, 0)).toFixed(0)}
+                ${allRemaining.toFixed(0)}
               </p>
               <p className="text-xs text-gray-500">Remaining</p>
             </div>
@@ -205,20 +210,21 @@ const Dashboard: React.FC = () => {
               className="flex flex-col"
             >
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {budget.categories.map((category) => (
-                  <motion.div key={category.category} variants={staggerItem} className="h-[350px]">
-                    <CategoryCard
-                      category={category.category}
-                      spent={category.spent}
-                      allocated={category.allocated}
-                      color={category.color}
-                      icon={category.icon}
-                      recentTransactions={getRecentTransactionsCount(category.category)}
-                      onClick={() => handleCategoryClick(category.category)}
-                      isSelected={selectedCategory === category.category}
-                    />
-                  </motion.div>
-                ))}
+                {budget.categories
+                  .map((category) => (
+                    <motion.div key={category.category} variants={staggerItem} className="h-[350px]">
+                      <CategoryCard
+                        category={category.category}
+                        spent={category.spent}
+                        allocated={category.allocated}
+                        color={category.color}
+                        icon={category.icon}
+                        recentTransactions={getRecentTransactionsCount(category.category)}
+                        onClick={() => handleCategoryClick(category.category)}
+                        isSelected={selectedCategory === category.category}
+                      />
+                    </motion.div>
+                  ))}
               </div>
             </motion.div>
           </div>
@@ -263,7 +269,7 @@ const Dashboard: React.FC = () => {
         <div className="flex justify-around">
           <div className="text-center">
             <p className="text-lg font-bold text-mint-600">
-              ${budget.totalBudget.toFixed(0)}
+              ${allTotalBudget.toFixed(0)}
             </p>
             <p className="text-xs text-gray-500">Budget</p>
           </div>
@@ -324,6 +330,7 @@ const Dashboard: React.FC = () => {
           onSave={(updatedCategories, newTotalBudget) => {
             updateCategoryBudgets(updatedCategories, newTotalBudget);
           }}
+          onDelete={deleteCategory}
           onClose={() => setShowBudgetSettings(false)}
         />
       )}
