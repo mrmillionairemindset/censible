@@ -119,6 +119,7 @@ const TransactionList: React.FC = () => {
   };
 
   const handleDelete = (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this transaction?')) return;
     deleteTransaction(id);
   };
 

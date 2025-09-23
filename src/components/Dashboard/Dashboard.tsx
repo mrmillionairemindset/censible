@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Settings, LogOut, User } from 'lucide-react';
+import { Settings, LogOut, User, Plus } from 'lucide-react';
 import { useBudget } from '../../contexts/BudgetContextSupabase';
+import { useAuth } from '../../contexts/AuthContext';
 import SpendingDonutChart from './SpendingDonutChart';
 import CategoryCard from './CategoryCard';
 import TransactionList from '../Transactions/TransactionList';
@@ -13,12 +14,17 @@ import BudgetSettings from '../Budget/BudgetSettings';
 import IncomeTracker from '../Income/IncomeTracker';
 import SavingsGoals from '../Savings/SavingsGoals';
 import FinancialOverview from '../Financial/FinancialOverview';
-import { CategoryType, CoreCategories } from '../../types';
+import HouseholdHeader from '../Household/HouseholdHeader';
+import HouseholdManager from '../Household/HouseholdManager';
+import JoinHousehold from '../Household/JoinHousehold';
+import { CategoryType } from '../../types';
 import { staggerContainer, staggerItem } from '../../utils/animations';
 import { useBillNotifications } from '../../hooks/useBillNotifications';
+import { ensureCoreCategories } from '../../utils/ensureCoreCategories';
 // Logo will be loaded from public folder
 
 const Dashboard: React.FC = () => {
+  const { signOut } = useAuth();
   const {
     budget,
     transactions,
@@ -29,13 +35,15 @@ const Dashboard: React.FC = () => {
     financialSummary,
     financialHealth,
     user,
-    signOut
+    refreshCurrentPeriod,
+    isAuthenticated
   } = useBudget();
   const { getUrgentBillsCount } = useBillNotifications();
   const [showReceiptUploader, setShowReceiptUploader] = useState(false);
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [showBillManager, setShowBillManager] = useState(false);
   const [showBudgetSettings, setShowBudgetSettings] = useState(false);
+  const [isSettingUpCategories, setIsSettingUpCategories] = useState(false);
 
   // Get recent transactions count for each category
   const getRecentTransactionsCount = (category: CategoryType) => {
@@ -50,6 +58,19 @@ const Dashboard: React.FC = () => {
     setCategoryFilter(selectedCategory === category ? undefined : category);
   };
 
+  // Handler for setting up core categories
+  const handleSetupCoreCategories = async () => {
+    setIsSettingUpCategories(true);
+    try {
+      await ensureCoreCategories();
+      await refreshCurrentPeriod();
+    } catch (error) {
+      console.error('Failed to set up core categories:', error);
+    } finally {
+      setIsSettingUpCategories(false);
+    }
+  };
+
   // Calculate ALL categories totals for display (not just core)
   const allTotalBudget = budget.categories.reduce((sum, cat) => sum + cat.allocated, 0);
   const allTotalSpent = budget.categories.reduce((sum, cat) => sum + cat.spent, 0);
@@ -57,7 +78,10 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      {/* Header */}
+      {/* Household Header */}
+      <HouseholdHeader />
+
+      {/* Logo and Stats Header */}
       <div className="bg-white shadow-sm border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <motion.div
@@ -209,23 +233,59 @@ const Dashboard: React.FC = () => {
               animate="animate"
               className="flex flex-col"
             >
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {budget.categories
-                  .map((category) => (
-                    <motion.div key={category.category} variants={staggerItem} className="h-[350px]">
-                      <CategoryCard
-                        category={category.category}
-                        spent={category.spent}
-                        allocated={category.allocated}
-                        color={category.color}
-                        icon={category.icon}
-                        recentTransactions={getRecentTransactionsCount(category.category)}
-                        onClick={() => handleCategoryClick(category.category)}
-                        isSelected={selectedCategory === category.category}
-                      />
-                    </motion.div>
-                  ))}
-              </div>
+              {budget.categories.length === 0 ? (
+                // Empty state when no categories exist
+                <div className="col-span-full flex flex-col items-center justify-center py-12 px-6">
+                  <div className="text-center max-w-md">
+                    <div className="mb-6">
+                      <div className="w-20 h-20 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                        <Settings className="w-10 h-10 text-gray-400" />
+                      </div>
+                      <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                        Set Up Your Budget Categories
+                      </h3>
+                      <p className="text-gray-600 mb-6">
+                        Get started by setting up your core budget categories. This will help you track your spending across different areas of your life.
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleSetupCoreCategories}
+                      disabled={isSettingUpCategories || !isAuthenticated}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-mint-500 text-white rounded-lg hover:bg-mint-600 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+                    >
+                      {isSettingUpCategories ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Setting Up Categories...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-4 h-4" />
+                          Set Up Core Categories
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {budget.categories
+                    .map((category) => (
+                      <motion.div key={category.category} variants={staggerItem} className="h-[350px]">
+                        <CategoryCard
+                          category={category.category}
+                          spent={category.spent}
+                          allocated={category.allocated}
+                          color={category.color}
+                          icon={category.icon}
+                          recentTransactions={getRecentTransactionsCount(category.category)}
+                          onClick={() => handleCategoryClick(category.category)}
+                          isSelected={selectedCategory === category.category}
+                        />
+                      </motion.div>
+                    ))}
+                </div>
+              )}
             </motion.div>
           </div>
 
@@ -334,6 +394,14 @@ const Dashboard: React.FC = () => {
           onClose={() => setShowBudgetSettings(false)}
         />
       )}
+
+      {/* Household Management Section */}
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <HouseholdManager />
+          <JoinHousehold />
+        </div>
+      </div>
 
     </div>
   );

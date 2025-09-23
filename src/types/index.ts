@@ -128,7 +128,7 @@ export const CategoryIcons: Record<CategoryType, string> = {
   'personal-care': '✨',
   investments: '📈',
   subscriptions: '📱',
-  miscellaneous: '📌',
+  miscellaneous: '📦',
   other: '📦'
 };
 
@@ -162,6 +162,7 @@ export const CoreCategories: CategoryType[] = [
   'utilities',
   'dining',
   'shopping',
+  'subscriptions',
   'debt-payments',
   'insurance'
 ];
@@ -169,7 +170,6 @@ export const CoreCategories: CategoryType[] = [
 // Quick Add Suggestions: Lifestyle-dependent categories users can add as needed
 export const QuickAddCategories: CategoryType[] = [
   'entertainment',
-  'subscriptions',
   'giving-charity',
   'savings',
   'education',
@@ -181,9 +181,8 @@ export const QuickAddCategories: CategoryType[] = [
 ];
 
 // Quick Add category descriptions for UI
-export const QuickAddDescriptions: Record<CategoryType, string> = {
+export const QuickAddDescriptions: Partial<Record<CategoryType, string>> = {
   entertainment: 'Some users roll this into Dining/Shopping, others keep it separate.',
-  subscriptions: 'Great optional category for streamers/gamers but not critical for everyone.',
   'giving-charity': 'Important but optional — add when you want to track tithing/donations.',
   savings: 'Only relevant if user actively budgets toward goals.',
   education: 'Tuition/lessons aren\'t universal — quick add makes sense.',

@@ -213,6 +213,18 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
           console.log(`[${new Date().toISOString()}] 📊 Current period result:`, !!currentData);
           if (currentData) {
             console.log(`[${new Date().toISOString()}] 📊 Categories found:`, currentData.categories.map((c: any) => c.category));
+
+            // Ensure core categories exist for current period
+            console.log(`[${new Date().toISOString()}] 🔍 Ensuring core categories exist...`);
+            try {
+              await BudgetPeriodService.ensureCoreCategories();
+              // Reload current period data to get any newly added core categories
+              currentData = await BudgetPeriodService.getCurrentPeriod();
+              console.log(`[${new Date().toISOString()}] ✅ Core categories ensured, updated categories:`, currentData?.categories.map((c: any) => c.category));
+            } catch (coreError) {
+              console.error(`[${new Date().toISOString()}] ⚠️ Error ensuring core categories:`, coreError);
+              // Continue with existing data even if core categories check fails
+            }
           }
         } catch (periodError) {
           console.error(`[${new Date().toISOString()}] ⚠️ Error getting current period:`, periodError);

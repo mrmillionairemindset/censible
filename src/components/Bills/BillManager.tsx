@@ -146,6 +146,7 @@ const BillManager: React.FC<BillManagerProps> = ({ onClose }) => {
   };
 
   const handleDeleteBill = (billId: string) => {
+    if (!window.confirm('Are you sure you want to delete this bill?')) return;
     setBills(bills.filter(b => b.id !== billId));
     toast.success('Bill deleted');
   };

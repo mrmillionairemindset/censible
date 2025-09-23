@@ -6,6 +6,7 @@ import type {
   InsertBudgetCategory,
   InsertTransaction
 } from '../types/database'
+import { CoreCategories, CategoryColors, CategoryIcons, CategoryType } from '../types'
 
 export class BudgetPeriodService {
 
@@ -119,11 +120,15 @@ export class BudgetPeriodService {
     }
     console.log(`[${new Date().toISOString()}] ✅ New period created with ID: ${newPeriod.id}`)
 
-    // Copy categories from previous period if exists
+    // Copy categories from previous period if exists, otherwise create core categories
     if (previousPeriod) {
       console.log(`[${new Date().toISOString()}] 🔄 Copying categories from previous period...`)
       await this.copyCategoriesToNewPeriod(previousPeriod.id, newPeriod.id)
       console.log(`[${new Date().toISOString()}] ✅ Categories copied successfully`)
+    } else {
+      console.log(`[${new Date().toISOString()}] 🆕 Creating core categories for new user...`)
+      await this.createCoreCategories(newPeriod.id)
+      console.log(`[${new Date().toISOString()}] ✅ Core categories created successfully`)
     }
 
     console.log(`[${new Date().toISOString()}] 🎉 Budget period creation completed`)
@@ -161,6 +166,32 @@ export class BudgetPeriodService {
 
       if (error) throw error
     }
+  }
+
+  /**
+   * Create core budget categories for a new period
+   */
+  static async createCoreCategories(periodId: string): Promise<void> {
+    const coreCategories: InsertBudgetCategory[] = CoreCategories.map(category => ({
+      period_id: periodId,
+      category: category,
+      allocated: 0, // Start with $0 allocated - users can set their own amounts
+      spent: 0,
+      color: CategoryColors[category],
+      icon: CategoryIcons[category],
+      is_custom: false // Core categories are not custom
+    }))
+
+    const { error } = await supabase
+      .from('budget_categories')
+      .insert(coreCategories)
+
+    if (error) {
+      console.error(`[${new Date().toISOString()}] ❌ Error creating core categories:`, error)
+      throw error
+    }
+
+    console.log(`[${new Date().toISOString()}] ✅ Created ${CoreCategories.length} core categories`)
   }
 
   /**
@@ -409,6 +440,59 @@ export class BudgetPeriodService {
 
     if (error) throw error
     return data
+  }
+
+  /**
+   * Ensure core categories exist for current period
+   */
+  static async ensureCoreCategories(): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+
+    // Get current active period
+    const currentPeriod = await this.checkAndCreateNewPeriod()
+    if (!currentPeriod) throw new Error('Could not create/find active period')
+
+    // Get existing categories for this period
+    const { data: existingCategories } = await supabase
+      .from('budget_categories')
+      .select('category')
+      .eq('period_id', currentPeriod.id)
+
+    const existingCategoryNames = existingCategories?.map(cat => cat.category) || []
+
+    // Find missing core categories
+    const missingCoreCategories = CoreCategories.filter(
+      coreCategory => !existingCategoryNames.includes(coreCategory)
+    )
+
+    if (missingCoreCategories.length > 0) {
+      console.log(`[${new Date().toISOString()}] 🆕 Adding ${missingCoreCategories.length} missing core categories:`, missingCoreCategories)
+
+      // Create missing core categories
+      const newCategories: InsertBudgetCategory[] = missingCoreCategories.map(category => ({
+        period_id: currentPeriod.id,
+        category: category,
+        allocated: 0, // Start with $0 allocated - users can set their own amounts
+        spent: 0,
+        color: CategoryColors[category],
+        icon: CategoryIcons[category],
+        is_custom: false // Core categories are not custom
+      }))
+
+      const { error } = await supabase
+        .from('budget_categories')
+        .insert(newCategories)
+
+      if (error) {
+        console.error(`[${new Date().toISOString()}] ❌ Error adding missing core categories:`, error)
+        throw error
+      }
+
+      console.log(`[${new Date().toISOString()}] ✅ Added ${missingCoreCategories.length} missing core categories`)
+    } else {
+      console.log(`[${new Date().toISOString()}] ✅ All core categories already exist`)
+    }
   }
 
   /**

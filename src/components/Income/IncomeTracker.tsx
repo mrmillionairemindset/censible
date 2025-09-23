@@ -138,6 +138,7 @@ const IncomeTracker: React.FC = () => {
   };
 
   const handleDeleteIncome = (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this income source?')) return;
     setIncomeSources(incomeSources.filter(income => income.id !== id));
     toast.success('Income source deleted');
   };
