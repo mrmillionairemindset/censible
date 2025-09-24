@@ -87,9 +87,21 @@
 - **Migration approach**: Targeted migrations work better than full schema rebuilds
 
 ## 🔄 Development Workflow
-**When finishing a major section/feature:**
-1. Complete the implementation and testing
-2. Provide a concise commit comment summarizing the changes
-3. Include the exact git command: `git commit -m "provided comment"`
-4. Wait for user to commit the changes
-5. When user says "done", proceed to next tasks
+**MANDATORY: Create commit after EVERY significant change to app code:**
+1. Complete any implementation/fix/feature work
+2. Immediately create a commit with descriptive message
+3. **ALWAYS provide commit in this exact format:** `git commit -m "[commit message]"`
+4. **ONLY include app functionality changes** - No mentions of documentation or local scripts
+5. **NEVER mention "Claude" in commit messages** - Focus only on what was changed in the application
+6. Use conventional commit format: `feat:`, `fix:`, `refactor:`, etc.
+7. Commit covers the actual functionality added/changed, not the development process
+
+**Example good commits with proper format:**
+- `git commit -m "feat: Add live database queries for household member management"`
+- `git commit -m "fix: Update permission checks to use actual household roles"`
+- `git commit -m "refactor: Replace mock data with real-time database connections"`
+
+**Example BAD commits (avoid these):**
+- `docs: Update Claude documentation` ❌
+- `feat: Add functionality as requested by Claude` ❌
+- `fix: Issues found during development session` ❌
