@@ -15,7 +15,7 @@ interface StatCard {
 
 const DashboardPage: React.FC = () => {
   const { household, profile } = useAuth();
-  const { transactions, budget, incomeSources, dataLoading, refreshCurrentPeriod, isAuthenticated } = useBudget();
+  const { transactions, budget, dataLoading, refreshCurrentPeriod, isAuthenticated } = useBudget();
   const [familyMembers, setFamilyMembers] = useState<any[]>([]);
   const [isSettingUpCategories, setIsSettingUpCategories] = useState(false);
 
@@ -28,6 +28,18 @@ const DashboardPage: React.FC = () => {
       setFamilyMembers(JSON.parse(stored));
     }
   }, [household?.household_id]);
+
+  // Helper function to calculate monthly equivalent (commented out as not currently used)
+  // const getMonthlyEquivalent = (amount: number, frequency: string) => {
+  //   switch (frequency) {
+  //     case 'weekly': return amount * 4.33;
+  //     case 'bi-weekly': return amount * 2.17;
+  //     case 'monthly': return amount;
+  //     case 'quarterly': return amount / 3;
+  //     case 'yearly': return amount / 12;
+  //     default: return amount;
+  //   }
+  // };
 
   // Handler for setting up core categories
   const handleSetupCoreCategories = async () => {
@@ -47,11 +59,11 @@ const DashboardPage: React.FC = () => {
     // Calculate total budget amount
     const totalBudget = budget.categories.reduce((sum, cat) => sum + cat.allocated, 0);
 
-    // Calculate monthly income
-    const totalIncome = incomeSources.reduce((sum, source) => {
-      const monthlyAmount = getMonthlyEquivalent(source.amount, source.frequency);
-      return sum + monthlyAmount;
-    }, 0);
+    // Note: totalIncome calculation available if needed in future
+    // const totalIncome = incomeSources.reduce((sum, source) => {
+    //   const monthlyAmount = getMonthlyEquivalent(source.amount, source.frequency);
+    //   return sum + monthlyAmount;
+    // }, 0);
 
     // Calculate total spent this month
     const totalSpent = transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
@@ -67,19 +79,7 @@ const DashboardPage: React.FC = () => {
       remainingPercentage,
       familyMemberCount: familyMembers.length
     };
-  }, [budget.categories, incomeSources, transactions, familyMembers]);
-
-  // Helper function to calculate monthly equivalent
-  const getMonthlyEquivalent = (amount: number, frequency: string) => {
-    switch (frequency) {
-      case 'weekly': return amount * 4.33;
-      case 'bi-weekly': return amount * 2.17;
-      case 'monthly': return amount;
-      case 'quarterly': return amount / 3;
-      case 'yearly': return amount / 12;
-      default: return amount;
-    }
-  };
+  }, [budget.categories, transactions, familyMembers]);
 
   // Generate stats cards with live data
   const monthlyStats: StatCard[] = [
@@ -173,27 +173,34 @@ const DashboardPage: React.FC = () => {
 
   // Calculate budget progress for each category
   const budgetProgress = useMemo(() => {
-    // Filter to only show core categories and sort by allocated amount
-    const coreCategories = budget.categories
-      .filter(cat => CoreCategories.includes(cat.category as any))
-      .sort((a, b) => b.allocated - a.allocated);
+    // Show all categories (both core and custom), sorted by allocated amount (highest first)
+    // Categories with 0 allocation go to the end
+    const sortedCategories = [...budget.categories].sort((a, b) => {
+      if (a.allocated === 0 && b.allocated === 0) return 0;
+      if (a.allocated === 0) return 1;
+      if (b.allocated === 0) return -1;
+      return b.allocated - a.allocated;
+    });
 
-    return coreCategories.map(category => {
+    return sortedCategories.map(category => {
       // Calculate total spent in this category
       const spent = transactions
         .filter(transaction => transaction.category === category.category)
         .reduce((sum, transaction) => sum + transaction.amount, 0);
 
       const percentage = category.allocated > 0 ? Math.round((spent / category.allocated) * 100) : 0;
+      const isCore = CoreCategories.includes(category.category as any);
 
       return {
         category: CategoryLabels[category.category] || category.category,
         spent: spent,
         budget: category.allocated,
         percentage: percentage,
-        needsSetup: category.allocated === 0
+        needsSetup: category.allocated === 0,
+        isCore: isCore,
+        isCustom: !isCore
       };
-    }).slice(0, 9); // Show all 9 core categories
+    });
   }, [budget.categories, transactions]);
 
   const getChangeColor = (type: string) => {
@@ -271,13 +278,27 @@ const DashboardPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Budget Progress */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Budget Progress</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Budget Progress</h2>
+            {budgetProgress.filter(item => item.isCustom).length > 0 && (
+              <span className="text-sm text-gray-500">
+                {budgetProgress.length} categories ({budgetProgress.filter(item => item.isCustom).length} custom)
+              </span>
+            )}
+          </div>
           <div className="space-y-4">
             {budgetProgress.length > 0 ? (
               budgetProgress.map((item, index) => (
                 <div key={index}>
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium text-gray-700">{item.category}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-700">{item.category}</span>
+                      {item.isCustom && (
+                        <span className="px-1.5 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 rounded">
+                          Custom
+                        </span>
+                      )}
+                    </div>
                     <span className="text-sm text-gray-600">
                       {item.needsSetup ? (
                         <span className="text-amber-600">Needs setup</span>

@@ -24,6 +24,7 @@ import {
 } from '../utils/financialCalculations';
 import { BudgetPeriodService } from '../services/budgetPeriodService';
 import { BudgetRepairService } from '../services/budgetRepairService';
+import { IncomeSourceService } from '../services/incomeSourceService';
 import { supabase } from '../lib/supabase';
 import { toDateSafe, toISOStringSafe } from '../utils/dates';
 
@@ -59,6 +60,9 @@ interface BudgetContextType extends BudgetState {
   updateCategoryBudgets: (categories: BudgetCategory[], totalBudget: number) => Promise<void>;
   deleteCategory: (category: CategoryType) => Promise<void>;
   setIncomeSources: (sources: IncomeSource[]) => void;
+  addIncomeSource: (incomeSource: Omit<IncomeSource, 'id'>) => Promise<void>;
+  updateIncomeSource: (id: string, updates: Partial<IncomeSource>) => Promise<void>;
+  deleteIncomeSource: (id: string) => Promise<void>;
   setSavingsGoals: (goals: SavingsGoal[]) => void;
   financialSummary: FinancialSummary;
   financialHealth: FinancialHealth;
@@ -77,18 +81,17 @@ const defaultCategories: BudgetCategory[] = [
   { category: 'groceries', allocated: 400, spent: 250, color: CategoryColors.groceries, icon: CategoryIcons.groceries, isCustom: false },
   { category: 'housing', allocated: 1200, spent: 800, color: CategoryColors.housing, icon: CategoryIcons.housing, isCustom: false },
   { category: 'transportation', allocated: 200, spent: 180, color: CategoryColors.transportation, icon: CategoryIcons.transportation, isCustom: false },
-  { category: 'utilities', allocated: 150, spent: 120, color: CategoryColors.utilities, icon: CategoryIcons.utilities, isCustom: false },
-  { category: 'dining', allocated: 200, spent: 150, color: CategoryColors.dining, icon: CategoryIcons.dining, isCustom: false },
   { category: 'shopping', allocated: 150, spent: 75, color: CategoryColors.shopping, icon: CategoryIcons.shopping, isCustom: false },
+  { category: 'entertainment', allocated: 200, spent: 120, color: CategoryColors.entertainment, icon: CategoryIcons.entertainment, isCustom: false },
+  { category: 'dining', allocated: 200, spent: 150, color: CategoryColors.dining, icon: CategoryIcons.dining, isCustom: false },
+  { category: 'utilities', allocated: 150, spent: 120, color: CategoryColors.utilities, icon: CategoryIcons.utilities, isCustom: false },
   { category: 'subscriptions', allocated: 100, spent: 50, color: CategoryColors.subscriptions, icon: CategoryIcons.subscriptions, isCustom: false },
-  { category: 'debt-payments', allocated: 300, spent: 250, color: CategoryColors['debt-payments'], icon: CategoryIcons['debt-payments'], isCustom: false },
-  { category: 'insurance', allocated: 200, spent: 180, color: CategoryColors.insurance, icon: CategoryIcons.insurance, isCustom: false },
 ];
 
 const initialState: BudgetState = {
   transactions: [],
   budget: {
-    totalBudget: 2900, // Updated to match core categories total: 400+1200+200+150+200+150+100+300+200
+    totalBudget: 2400, // Updated to match core categories total: 400+1200+200+150+200+200+150+100
     categories: defaultCategories,
     period: 'monthly' as const,
     startDate: new Date()
@@ -245,10 +248,17 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
         // Continue with empty historical data
       }
 
-      // Load local data for income sources and savings goals (these remain local for now)
-      const savedIncomeSources: IncomeSource[] = JSON.parse(
-        localStorage.getItem('centsible_income_sources') || '[]'
-      );
+      // Start fresh with income sources from database (no localStorage fallback)
+      let savedIncomeSources: IncomeSource[] = [];
+      try {
+        if (state.user) {
+          savedIncomeSources = await IncomeSourceService.getIncomeSources(state.user.id, state.user.household_id);
+        }
+      } catch (error) {
+        console.error('Failed to load income sources from database:', error);
+        // Start with empty array for fresh start
+        savedIncomeSources = [];
+      }
       const savedSavingsGoalsRaw: SavingsGoal[] = JSON.parse(
         localStorage.getItem('centsible_savings_goals') || '[]'
       );
@@ -856,11 +866,78 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
     }
   };
 
-  // Local data management (keep these for income sources and savings goals)
+  // Income sources management - now using database
   const setIncomeSources = (sources: IncomeSource[]) => {
     setState(prev => ({ ...prev, incomeSources: sources }));
-    // TODO: Implement Supabase storage for income sources
+
+    // Keep localStorage as backup for now
     localStorage.setItem('centsible_income_sources', JSON.stringify(sources));
+  };
+
+  const addIncomeSource = async (incomeSource: Omit<IncomeSource, 'id'>) => {
+    if (!state.user) {
+      throw new Error('User not authenticated');
+    }
+
+    try {
+      const newIncomeSource = await IncomeSourceService.createIncomeSource(
+        incomeSource,
+        state.user.id,
+        state.user.household_id
+      );
+
+      setState(prev => ({
+        ...prev,
+        incomeSources: [...prev.incomeSources, newIncomeSource]
+      }));
+
+      // Update localStorage backup
+      const updatedSources = [...state.incomeSources, newIncomeSource];
+      localStorage.setItem('centsible_income_sources', JSON.stringify(updatedSources));
+    } catch (error) {
+      console.error('Failed to add income source:', error);
+      throw error;
+    }
+  };
+
+  const updateIncomeSource = async (id: string, updates: Partial<IncomeSource>) => {
+    try {
+      const updatedIncomeSource = await IncomeSourceService.updateIncomeSource(id, updates);
+
+      setState(prev => ({
+        ...prev,
+        incomeSources: prev.incomeSources.map(source =>
+          source.id === id ? updatedIncomeSource : source
+        )
+      }));
+
+      // Update localStorage backup
+      const updatedSources = state.incomeSources.map(source =>
+        source.id === id ? updatedIncomeSource : source
+      );
+      localStorage.setItem('centsible_income_sources', JSON.stringify(updatedSources));
+    } catch (error) {
+      console.error('Failed to update income source:', error);
+      throw error;
+    }
+  };
+
+  const deleteIncomeSource = async (id: string) => {
+    try {
+      await IncomeSourceService.deleteIncomeSource(id);
+
+      setState(prev => ({
+        ...prev,
+        incomeSources: prev.incomeSources.filter(source => source.id !== id)
+      }));
+
+      // Update localStorage backup
+      const updatedSources = state.incomeSources.filter(source => source.id !== id);
+      localStorage.setItem('centsible_income_sources', JSON.stringify(updatedSources));
+    } catch (error) {
+      console.error('Failed to delete income source:', error);
+      throw error;
+    }
   };
 
   const setSavingsGoals = (goals: SavingsGoal[]) => {
@@ -995,6 +1072,9 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
     updateCategoryBudgets,
     deleteCategory,
     setIncomeSources,
+    addIncomeSource,
+    updateIncomeSource,
+    deleteIncomeSource,
     setSavingsGoals,
     financialSummary,
     financialHealth,

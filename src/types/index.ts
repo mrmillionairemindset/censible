@@ -159,17 +159,17 @@ export const CoreCategories: CategoryType[] = [
   'groceries',
   'housing',
   'transportation',
-  'utilities',
-  'dining',
   'shopping',
-  'subscriptions',
-  'debt-payments',
-  'insurance'
+  'entertainment',
+  'dining',
+  'utilities',
+  'subscriptions'
 ];
 
 // Quick Add Suggestions: Lifestyle-dependent categories users can add as needed
 export const QuickAddCategories: CategoryType[] = [
-  'entertainment',
+  'debt-payments',
+  'insurance',
   'giving-charity',
   'savings',
   'education',
