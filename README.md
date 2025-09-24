@@ -7,6 +7,14 @@
 ![Tailwind](https://img.shields.io/badge/Tailwind-3.3.0-06B6D4?logo=tailwindcss)
 ![OCR](https://img.shields.io/badge/OCR-Tesseract.js-FF6B6B)
 
+## ⚠️ Critical: Mandatory Household System
+
+**IMPORTANT:** Every user MUST belong to a household. During signup, users must either:
+- **Create a new household** (become the owner)
+- **Join an existing household** (with a 6-character invitation code)
+
+See [SIGNUP_FLOW_DOCUMENTATION.md](./SIGNUP_FLOW_DOCUMENTATION.md) for complete details.
+
 ## ✨ Features
 
 ### 🎯 Core Features

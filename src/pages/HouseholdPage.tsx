@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Users, UserPlus, Settings, Shield, DollarSign, Edit3, Trash2, Crown, Mail, UserCheck, UserX, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import HouseholdManager from '../components/Household/HouseholdManager';
+import JoinHousehold from '../components/Household/JoinHousehold';
 
 interface HouseholdMember {
   id: string;
@@ -116,7 +118,7 @@ const HouseholdPage: React.FC = () => {
     }
   ];
 
-  const isOwner = profile?.id === '1'; // Mock check - in real app, check against household owner
+  const isOwner = household?.role === 'owner' || household?.role === 'admin';
 
   const getRoleIcon = (role: string) => {
     switch (role) {
@@ -291,78 +293,10 @@ const HouseholdPage: React.FC = () => {
 
   const renderInvitationsTab = () => (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900">Pending Invitations</h3>
-          <p className="text-gray-600">Manage family member invitations</p>
-        </div>
-        {isOwner && (
-          <button
-            onClick={() => setShowInviteModal(true)}
-            className="flex items-center space-x-2 bg-mint-600 text-white px-4 py-2 rounded-lg hover:bg-mint-700"
-          >
-            <Mail className="w-4 h-4" />
-            <span>Send Invitation</span>
-          </button>
-        )}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <HouseholdManager />
+        <JoinHousehold />
       </div>
-
-      {pendingInvitations.length > 0 ? (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="text-left py-3 px-6 text-sm font-medium text-gray-600">Email</th>
-                <th className="text-left py-3 px-6 text-sm font-medium text-gray-600">Username</th>
-                <th className="text-left py-3 px-6 text-sm font-medium text-gray-600">Invite Code</th>
-                <th className="text-left py-3 px-6 text-sm font-medium text-gray-600">Sent</th>
-                <th className="text-left py-3 px-6 text-sm font-medium text-gray-600">Expires</th>
-                <th className="text-center py-3 px-6 text-sm font-medium text-gray-600">Status</th>
-                <th className="text-center py-3 px-6 text-sm font-medium text-gray-600">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pendingInvitations.map((invitation) => (
-                <tr key={invitation.id} className="border-b border-gray-100">
-                  <td className="py-4 px-6 text-sm text-gray-900">{invitation.email}</td>
-                  <td className="py-4 px-6 text-sm text-gray-900">{invitation.invitedUsername || 'Not specified'}</td>
-                  <td className="py-4 px-6">
-                    <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono">
-                      {invitation.inviteCode}
-                    </code>
-                  </td>
-                  <td className="py-4 px-6 text-sm text-gray-600">{invitation.sentDate}</td>
-                  <td className="py-4 px-6 text-sm text-gray-600">{invitation.expiresAt}</td>
-                  <td className="py-4 px-6 text-center">
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      invitation.status === 'pending'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : invitation.status === 'expired'
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-green-100 text-green-800'
-                    }`}>
-                      {invitation.status}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6 text-center">
-                    {isOwner && (
-                      <button className="text-red-600 hover:text-red-700 text-sm">
-                        Revoke
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="text-center py-12 bg-white rounded-lg border border-gray-100">
-          <Mail className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No pending invitations</h3>
-          <p className="text-gray-600">Invite family members to join your household budget.</p>
-        </div>
-      )}
     </div>
   );
 

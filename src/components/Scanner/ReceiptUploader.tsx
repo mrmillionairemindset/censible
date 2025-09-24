@@ -1,9 +1,10 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDropzone } from 'react-dropzone';
-import { Camera, Upload, X, CheckCircle, AlertCircle, Loader } from 'lucide-react';
+import { Camera, Upload, X, CheckCircle, AlertCircle, Loader, Lock } from 'lucide-react';
 import { useOCR } from '../../hooks/useOCR';
 import { useBudget } from '../../contexts/BudgetContextSupabase';
+import { useFeatureGate } from '../../hooks/useFeatureGate';
 import { categorizeTransaction } from '../../utils/categorizer';
 import { CategoryType, CategoryLabels, Transaction, CoreCategories, QuickAddCategories } from '../../types';
 import { fadeIn, scaleIn } from '../../utils/animations';
@@ -25,10 +26,14 @@ interface ProcessedData {
 const ReceiptUploader: React.FC<ReceiptUploaderProps> = ({ onClose, onSuccess }) => {
   const { addTransaction } = useBudget();
   const { processImage, isProcessing, progress, error } = useOCR();
+  const { limits, isPremium, getRestrictionMessage } = useFeatureGate();
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [processedData, setProcessedData] = useState<ProcessedData | null>(null);
   const [editingData, setEditingData] = useState<ProcessedData | null>(null);
   const [step, setStep] = useState<'upload' | 'processing' | 'review' | 'success'>('upload');
+
+  // Check if OCR is available (Premium feature)
+  const canUseOCR = limits?.canUseOCR ?? false;
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -114,41 +119,79 @@ const ReceiptUploader: React.FC<ReceiptUploaderProps> = ({ onClose, onSuccess })
     setEditingData({ ...editingData, [field]: value });
   };
 
-  const renderUploadStep = () => (
-    <motion.div variants={fadeIn} className="text-center">
-      <div
-        {...getRootProps()}
-        className={`relative border-2 border-dashed rounded-xl p-8 transition-colors cursor-pointer ${
-          isDragActive ? 'border-mint-500 bg-mint-50' : 'border-gray-300 hover:border-mint-400'
-        }`}
-      >
-        <input {...getInputProps()} />
-        <motion.div
-          animate={{ y: isDragActive ? -5 : 0 }}
-          className="space-y-4"
-        >
-          <div className="w-16 h-16 mx-auto bg-mint-100 rounded-full flex items-center justify-center">
-            {isDragActive ? (
-              <Upload className="w-8 h-8 text-mint-600" />
-            ) : (
-              <Camera className="w-8 h-8 text-mint-600" />
-            )}
+  const renderUploadStep = () => {
+    // If OCR is not available (Free tier), show upgrade prompt
+    if (!canUseOCR) {
+      return (
+        <motion.div variants={fadeIn} className="text-center space-y-6">
+          <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-8 border border-orange-200">
+            <div className="w-16 h-16 mx-auto bg-orange-100 rounded-full flex items-center justify-center mb-4">
+              <Lock className="w-8 h-8 text-orange-600" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Premium Feature</h3>
+            <p className="text-gray-600 mb-4">
+              {getRestrictionMessage('canUseOCR')}
+            </p>
+            <p className="text-sm text-gray-500 mb-6">
+              OCR receipt scanning saves time by automatically extracting amounts and merchant details from your receipts.
+            </p>
+            <button
+              onClick={() => {
+                toast.success('Upgrade to Premium to unlock OCR scanning!');
+                // TODO: Navigate to subscription page
+              }}
+              className="bg-gradient-to-r from-orange-500 to-yellow-500 text-white font-semibold px-6 py-3 rounded-lg hover:shadow-lg transition-shadow"
+            >
+              Upgrade to Premium
+            </button>
           </div>
-          <div>
-            <p className="text-lg font-semibold text-gray-800">
-              {isDragActive ? 'Drop your receipt here' : 'Upload Receipt'}
-            </p>
-            <p className="text-sm text-gray-500 mt-1">
-              Drag & drop or click to select a receipt image
-            </p>
-            <p className="text-xs text-gray-400 mt-2">
-              Supports JPG, PNG, GIF, WebP (max 10MB)
-            </p>
-          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 text-sm"
+          >
+            Use manual entry instead
+          </button>
         </motion.div>
-      </div>
-    </motion.div>
-  );
+      );
+    }
+
+    // Premium users get the full OCR interface
+    return (
+      <motion.div variants={fadeIn} className="text-center">
+        <div
+          {...getRootProps()}
+          className={`relative border-2 border-dashed rounded-xl p-8 transition-colors cursor-pointer ${
+            isDragActive ? 'border-mint-500 bg-mint-50' : 'border-gray-300 hover:border-mint-400'
+          }`}
+        >
+          <input {...getInputProps()} />
+          <motion.div
+            animate={{ y: isDragActive ? -5 : 0 }}
+            className="space-y-4"
+          >
+            <div className="w-16 h-16 mx-auto bg-mint-100 rounded-full flex items-center justify-center">
+              {isDragActive ? (
+                <Upload className="w-8 h-8 text-mint-600" />
+              ) : (
+                <Camera className="w-8 h-8 text-mint-600" />
+              )}
+            </div>
+            <div>
+              <p className="text-lg font-semibold text-gray-800">
+                {isDragActive ? 'Drop your receipt here' : 'Upload Receipt'}
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                Drag & drop or click to select a receipt image
+              </p>
+              <p className="text-xs text-gray-400 mt-2">
+                Supports JPG, PNG, GIF, WebP (max 10MB)
+              </p>
+            </div>
+          </motion.div>
+        </div>
+      </motion.div>
+    );
+  };
 
   const renderProcessingStep = () => (
     <motion.div variants={fadeIn} className="text-center space-y-6">

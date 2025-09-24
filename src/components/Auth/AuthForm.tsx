@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
+import { createHousehold, joinHouseholdWithCode } from '../../lib/auth-utils';
 
 const AuthForm: React.FC = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -15,6 +16,11 @@ const AuthForm: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [username, setUsername] = useState('');
   const [signupSuccess, setSignupSuccess] = useState<{ username: string; email: string } | null>(null);
+
+  // Household signup choices
+  const [householdChoice, setHouseholdChoice] = useState<'create' | 'join' | null>(null);
+  const [householdName, setHouseholdName] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
 
   const { signIn, signUp } = useAuth();
 
@@ -57,6 +63,25 @@ const AuthForm: React.FC = () => {
           return;
         }
 
+        // Validate household choice
+        if (!householdChoice) {
+          setError('Please choose to either create a household or join with an invitation code');
+          setIsLoading(false);
+          return;
+        }
+
+        if (householdChoice === 'create' && !householdName.trim()) {
+          setError('Please enter a household name');
+          setIsLoading(false);
+          return;
+        }
+
+        if (householdChoice === 'join' && inviteCode.trim().length !== 6) {
+          setError('Please enter a valid 6-character invitation code');
+          setIsLoading(false);
+          return;
+        }
+
         // Use user-chosen username
         const cleanedUsername = cleanUsername(username);
         if (!cleanedUsername) {
@@ -68,11 +93,24 @@ const AuthForm: React.FC = () => {
         const displayName = `${firstName} ${lastName}`;
 
         try {
+          // First create the user account
           await signUp(cleanedUsername, email, password, displayName);
+
+          // Then handle household creation or joining
+          if (householdChoice === 'create') {
+            await createHousehold(householdName.trim());
+          } else if (householdChoice === 'join') {
+            await joinHouseholdWithCode(inviteCode.trim().toUpperCase());
+          }
+
           setSignupSuccess({ username: cleanedUsername, email });
         } catch (err: any) {
           if (err.message?.includes('Username already taken')) {
             setError('Username already taken. Please choose a different username.');
+          } else if (err.message?.includes('Invalid or expired invitation code')) {
+            setError('Invalid or expired invitation code. Please check the code and try again.');
+          } else if (err.message?.includes('already a member')) {
+            setError('You are already a member of this household.');
           } else {
             throw err;
           }
@@ -243,6 +281,90 @@ const AuthForm: React.FC = () => {
                   3-20 characters, letters, numbers, and underscores only
                 </p>
               </div>
+
+              {/* Household Choice Section */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Household Setup
+                </label>
+                <div className="space-y-3">
+                  <label className="flex items-start space-x-3 p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      name="householdChoice"
+                      value="create"
+                      checked={householdChoice === 'create'}
+                      onChange={(e) => setHouseholdChoice(e.target.value as 'create')}
+                      className="mt-0.5 h-4 w-4 text-mint-600 focus:ring-mint-500 border-gray-300"
+                    />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-900">Create a new household</div>
+                      <div className="text-xs text-gray-500">Start fresh with your own family budget</div>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start space-x-3 p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      name="householdChoice"
+                      value="join"
+                      checked={householdChoice === 'join'}
+                      onChange={(e) => setHouseholdChoice(e.target.value as 'join')}
+                      className="mt-0.5 h-4 w-4 text-mint-600 focus:ring-mint-500 border-gray-300"
+                    />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-900">Join an existing household</div>
+                      <div className="text-xs text-gray-500">Use an invitation code from a family member</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Conditional fields based on household choice */}
+              {householdChoice === 'create' && (
+                <div>
+                  <label htmlFor="householdName" className="block text-sm font-medium text-gray-700 mb-2">
+                    Household Name
+                  </label>
+                  <input
+                    id="householdName"
+                    name="householdName"
+                    type="text"
+                    required
+                    value={householdName}
+                    onChange={(e) => setHouseholdName(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-mint-500 focus:border-mint-500"
+                    placeholder="Enter your family household name"
+                    maxLength={50}
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    This will be your family's shared budget name
+                  </p>
+                </div>
+              )}
+
+              {householdChoice === 'join' && (
+                <div>
+                  <label htmlFor="inviteCode" className="block text-sm font-medium text-gray-700 mb-2">
+                    Invitation Code
+                  </label>
+                  <input
+                    id="inviteCode"
+                    name="inviteCode"
+                    type="text"
+                    required
+                    value={inviteCode}
+                    onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-mint-500 focus:border-mint-500 font-mono text-center text-lg tracking-wider"
+                    placeholder="ABC123"
+                    maxLength={6}
+                    pattern="[A-Z0-9]{6}"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    6-character code provided by the household owner
+                  </p>
+                </div>
+              )}
             </>
           )}
 
@@ -361,6 +483,9 @@ const AuthForm: React.FC = () => {
                 setUsernameOrEmail('');
                 setPassword('');
                 setConfirmPassword('');
+                setHouseholdChoice(null);
+                setHouseholdName('');
+                setInviteCode('');
               }}
               className="text-sm text-mint-600 hover:text-mint-700 font-medium"
             >
