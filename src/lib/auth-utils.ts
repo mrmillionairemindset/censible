@@ -262,7 +262,7 @@ export async function createHousehold(householdName: string) {
 /**
  * Generate and send household invitation
  */
-export async function inviteToHousehold(email: string, username?: string) {
+export async function inviteToHousehold(email: string, role: string = 'viewer') {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) throw new Error('Not authenticated');
@@ -273,33 +273,26 @@ export async function inviteToHousehold(email: string, username?: string) {
     throw new Error('User is not part of a household');
   }
 
-  if (householdInfo.role !== 'owner') {
-    throw new Error('Only household owners can send invitations');
+  if (!['owner', 'admin'].includes(householdInfo.role || '')) {
+    throw new Error('Only household owners and admins can send invitations');
   }
 
-  // Generate invite code
-  const { data: inviteCode, error: codeError } = await supabase.rpc('generate_invite_code');
-
-  if (codeError || !inviteCode) {
-    throw new Error('Failed to generate invite code');
-  }
-
-  // Create invitation
-  const { data, error } = await supabase
-    .from('household_invitations')
-    .insert({
-      household_id: householdInfo.household_id,
-      email: email,
-      invited_username: username,
-      invite_code: inviteCode,
-      invited_by: user.id
-    })
-    .select()
-    .single();
+  // Create invitation using our new database function
+  const { data, error } = await supabase.rpc('create_invitation', {
+    p_household_id: householdInfo.household_id,
+    p_invited_by: user.id,
+    p_email: email,
+    p_role: role
+  });
 
   if (error) throw error;
+  if (!data || data.length === 0) throw new Error('Failed to create invitation');
 
-  return data;
+  const invitation = data[0];
+  return {
+    invite_code: invitation.code,
+    expires_at: invitation.expires_at
+  };
 }
 
 /**
@@ -310,68 +303,54 @@ export async function joinHouseholdWithCode(inviteCode: string) {
 
   if (!user) throw new Error('Not authenticated');
 
-  // Check if user already belongs to a household
-  const currentHousehold = await getUserHousehold();
-  if (currentHousehold.household_id) {
-    throw new Error('User already belongs to a household');
+  // Use our new redeem_invitation function
+  const { data, error } = await supabase.rpc('redeem_invitation', {
+    p_code: inviteCode.toUpperCase(),
+    p_user_id: user.id
+  });
+
+  if (error) throw error;
+  if (!data || data.length === 0) throw new Error('Failed to redeem invitation');
+
+  const result = data[0];
+
+  if (!result.success) {
+    throw new Error(result.message || 'Failed to join household');
   }
 
-  // Get invitation
-  const { data: invitation, error: inviteError } = await supabase
-    .from('household_invitations')
-    .select(`
-      *,
-      households (
-        id,
-        household_name,
-        subscription_status
-      )
-    `)
-    .eq('invite_code', inviteCode)
-    .is('used_at', null)
-    .gt('expires_at', new Date().toISOString())
-    .single();
+  return {
+    id: result.household_id,
+    household_name: result.household_name,
+    role: result.role
+  };
+}
 
-  if (inviteError || !invitation) {
-    throw new Error('Invalid or expired invitation code');
+/**
+ * Get household invitations for management
+ */
+export async function getHouseholdInvitations() {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
+  // Get user's household
+  const householdInfo = await getUserHousehold();
+  if (!householdInfo.household_id) {
+    throw new Error('User is not part of a household');
   }
 
-  // Get user profile to verify email/username match
-  const profile = await getCurrentUserProfile();
-  if (!profile) throw new Error('User profile not found');
-
-  // Verify invitation is for this user
-  const emailMatch = invitation.email === profile.email;
-  const usernameMatch = invitation.invited_username === profile.username;
-
-  if (!emailMatch && !usernameMatch) {
-    throw new Error('This invitation is not for your account');
+  if (!['owner', 'admin'].includes(householdInfo.role || '')) {
+    throw new Error('Only household owners and admins can view invitations');
   }
 
-  // Add user to household
-  const { error: memberError } = await supabase
-    .from('household_members')
-    .insert({
-      household_id: invitation.household_id,
-      user_id: user.id,
-      role: 'member',
-      invited_by: invitation.invited_by
-    });
+  // Get invitations using our new database function
+  const { data, error } = await supabase.rpc('get_household_invitations', {
+    p_household_id: householdInfo.household_id
+  });
 
-  if (memberError) throw memberError;
+  if (error) throw error;
 
-  // Mark invitation as used
-  const { error: updateError } = await supabase
-    .from('household_invitations')
-    .update({
-      used_at: new Date().toISOString(),
-      used_by: user.id
-    })
-    .eq('id', invitation.id);
-
-  if (updateError) throw updateError;
-
-  return invitation.households;
+  return data || [];
 }
 
 /**

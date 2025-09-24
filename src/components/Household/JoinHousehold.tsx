@@ -48,19 +48,19 @@ const JoinHousehold: React.FC = () => {
             type="text"
             value={inviteCode}
             onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-            placeholder="ABC12345"
+            placeholder="ABC123"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-mint-500 font-mono text-center text-lg tracking-wider"
-            maxLength={8}
-            pattern="[A-Z0-9]{8}"
+            maxLength={6}
+            pattern="[A-Z0-9]{6}"
           />
           <p className="mt-1 text-xs text-gray-500">
-            8-character code provided by the household owner
+            6-character code provided by the household owner
           </p>
         </div>
 
         <button
           type="submit"
-          disabled={loading || inviteCode.length < 8}
+          disabled={loading || inviteCode.length < 6}
           className="w-full px-4 py-2 text-sm font-medium text-white bg-mint-600 border border-transparent rounded-lg hover:bg-mint-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? (
