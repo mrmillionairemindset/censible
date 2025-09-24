@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { DollarSign, TrendingUp, TrendingDown, Users, Calendar, AlertTriangle, Plus, Settings } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useBudget } from '../contexts/BudgetContextSupabase';
-import { CategoryLabels } from '../types';
+import { CategoryLabels, CoreCategories } from '../types';
 import { ensureCoreCategories } from '../utils/ensureCoreCategories';
 
 interface StatCard {
@@ -173,7 +173,12 @@ const DashboardPage: React.FC = () => {
 
   // Calculate budget progress for each category
   const budgetProgress = useMemo(() => {
-    return budget.categories.map(category => {
+    // Filter to only show core categories and sort by allocated amount
+    const coreCategories = budget.categories
+      .filter(cat => CoreCategories.includes(cat.category as any))
+      .sort((a, b) => b.allocated - a.allocated);
+
+    return coreCategories.map(category => {
       // Calculate total spent in this category
       const spent = transactions
         .filter(transaction => transaction.category === category.category)
@@ -185,9 +190,10 @@ const DashboardPage: React.FC = () => {
         category: CategoryLabels[category.category] || category.category,
         spent: spent,
         budget: category.allocated,
-        percentage: percentage
+        percentage: percentage,
+        needsSetup: category.allocated === 0
       };
-    }).slice(0, 5); // Show top 5 categories
+    }).slice(0, 9); // Show all 9 core categories
   }, [budget.categories, transactions]);
 
   const getChangeColor = (type: string) => {
@@ -273,21 +279,33 @@ const DashboardPage: React.FC = () => {
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-sm font-medium text-gray-700">{item.category}</span>
                     <span className="text-sm text-gray-600">
-                      ${item.spent.toLocaleString()} / ${item.budget.toLocaleString()}
+                      {item.needsSetup ? (
+                        <span className="text-amber-600">Needs setup</span>
+                      ) : (
+                        <>${item.spent.toLocaleString()} / ${item.budget.toLocaleString()}</>
+                      )}
                     </span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className={`h-2 rounded-full ${getProgressColor(item.percentage)}`}
-                      style={{ width: `${Math.min(item.percentage, 100)}%` }}
-                    ></div>
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {item.percentage}% used
-                    {item.percentage > 100 && (
-                      <span className="text-red-600 font-medium"> (Over budget!)</span>
-                    )}
-                  </div>
+                  {!item.needsSetup ? (
+                    <>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full ${getProgressColor(item.percentage)}`}
+                          style={{ width: `${Math.min(item.percentage, 100)}%` }}
+                        ></div>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {item.percentage}% used
+                        {item.percentage > 100 && (
+                          <span className="text-red-600 font-medium"> (Over budget!)</span>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-xs text-amber-600 mt-1">
+                      Set a budget amount in the Budget tab
+                    </div>
+                  )}
                 </div>
               ))
             ) : (

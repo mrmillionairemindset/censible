@@ -80,6 +80,7 @@ const defaultCategories: BudgetCategory[] = [
   { category: 'utilities', allocated: 150, spent: 120, color: CategoryColors.utilities, icon: CategoryIcons.utilities, isCustom: false },
   { category: 'dining', allocated: 200, spent: 150, color: CategoryColors.dining, icon: CategoryIcons.dining, isCustom: false },
   { category: 'shopping', allocated: 150, spent: 75, color: CategoryColors.shopping, icon: CategoryIcons.shopping, isCustom: false },
+  { category: 'subscriptions', allocated: 100, spent: 50, color: CategoryColors.subscriptions, icon: CategoryIcons.subscriptions, isCustom: false },
   { category: 'debt-payments', allocated: 300, spent: 250, color: CategoryColors['debt-payments'], icon: CategoryIcons['debt-payments'], isCustom: false },
   { category: 'insurance', allocated: 200, spent: 180, color: CategoryColors.insurance, icon: CategoryIcons.insurance, isCustom: false },
 ];
@@ -87,7 +88,7 @@ const defaultCategories: BudgetCategory[] = [
 const initialState: BudgetState = {
   transactions: [],
   budget: {
-    totalBudget: 2800, // Updated to match core categories total: 400+1200+200+150+200+150+300+200
+    totalBudget: 2900, // Updated to match core categories total: 400+1200+200+150+200+150+100+300+200
     categories: defaultCategories,
     period: 'monthly' as const,
     startDate: new Date()
