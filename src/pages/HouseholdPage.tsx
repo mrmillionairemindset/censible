@@ -1,26 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Users, UserPlus, Settings, Shield, DollarSign, Edit3, Trash2, Crown, Mail, UserCheck, UserX, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { getHouseholdMembers, getHouseholdInvitations, HouseholdMember } from '../lib/auth-utils';
 import HouseholdManager from '../components/Household/HouseholdManager';
 import JoinHousehold from '../components/Household/JoinHousehold';
+import toast from 'react-hot-toast';
 
-interface HouseholdMember {
-  id: string;
-  name: string;
-  username: string;
-  email: string;
-  role: 'owner' | 'member' | 'viewer';
-  memberType: 'adult' | 'teen' | 'child';
-  joinedDate: string;
-  lastActive: string;
-  monthlyAllowance: number;
-  allowanceBalance: number;
-  monthlySpendingLimit?: number;
-  canEditBudget: boolean;
-  canAddTransactions: boolean;
-  requiresApproval: boolean;
-  avatar?: string;
-}
+// Using HouseholdMember interface from auth-utils.ts
 
 interface PendingInvitation {
   id: string;
@@ -40,83 +26,58 @@ const HouseholdPage: React.FC = () => {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteUsername, setInviteUsername] = useState('');
 
-  // Mock data - will be replaced with real data from database
-  const householdMembers: HouseholdMember[] = [
-    {
-      id: '1',
-      name: 'Sarah Johnson',
-      username: 'sarah_j',
-      email: 'sarah@email.com',
-      role: 'owner',
-      memberType: 'adult',
-      joinedDate: '2025-09-01',
-      lastActive: '2025-09-22',
-      monthlyAllowance: 0,
-      allowanceBalance: 0,
-      canEditBudget: true,
-      canAddTransactions: true,
-      requiresApproval: false
-    },
-    {
-      id: '2',
-      name: 'Mike Johnson',
-      username: 'mike_j',
-      email: 'mike@email.com',
-      role: 'member',
-      memberType: 'adult',
-      joinedDate: '2025-09-01',
-      lastActive: '2025-09-21',
-      monthlyAllowance: 0,
-      allowanceBalance: 0,
-      canEditBudget: true,
-      canAddTransactions: true,
-      requiresApproval: false
-    },
-    {
-      id: '3',
-      name: 'Emma Johnson',
-      username: 'emma_j',
-      email: 'emma@email.com',
-      role: 'member',
-      memberType: 'teen',
-      joinedDate: '2025-09-05',
-      lastActive: '2025-09-22',
-      monthlyAllowance: 50,
-      allowanceBalance: 23.50,
-      monthlySpendingLimit: 75,
-      canEditBudget: false,
-      canAddTransactions: true,
-      requiresApproval: true
-    },
-    {
-      id: '4',
-      name: 'Jake Johnson',
-      username: 'jake_j',
-      email: 'jake@email.com',
-      role: 'member',
-      memberType: 'child',
-      joinedDate: '2025-09-05',
-      lastActive: '2025-09-20',
-      monthlyAllowance: 25,
-      allowanceBalance: 18.75,
-      monthlySpendingLimit: 35,
-      canEditBudget: false,
-      canAddTransactions: true,
-      requiresApproval: true
-    }
-  ];
+  // Real data state
+  const [householdMembers, setHouseholdMembers] = useState<HouseholdMember[]>([]);
+  const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const pendingInvitations: PendingInvitation[] = [
-    {
-      id: '1',
-      email: 'grandma@email.com',
-      invitedUsername: 'grandma_j',
-      inviteCode: 'ABC123XYZ',
-      sentDate: '2025-09-20',
-      expiresAt: '2025-09-27',
-      status: 'pending'
+  // Load real data from database
+  useEffect(() => {
+    async function loadHouseholdData() {
+      if (!household?.household_id) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+
+        // Load household members
+        const members = await getHouseholdMembers();
+        setHouseholdMembers(members);
+
+        // Load pending invitations (if user is owner/admin)
+        if (household.role === 'owner' || household.role === 'admin') {
+          try {
+            const invitations = await getHouseholdInvitations();
+            setPendingInvitations(invitations.map((inv: any) => ({
+              id: inv.code,
+              email: inv.email,
+              invitedUsername: inv.email,
+              inviteCode: inv.code,
+              sentDate: new Date(inv.created_at).toISOString().split('T')[0],
+              expiresAt: new Date(inv.expires_at).toISOString().split('T')[0],
+              status: inv.used_at ? 'used' : (new Date() > new Date(inv.expires_at) ? 'expired' : 'pending')
+            })));
+          } catch (inviteError) {
+            console.error('Could not load invitations:', inviteError);
+            setPendingInvitations([]);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading household data:', error);
+        toast.error('Failed to load household data');
+      } finally {
+        setLoading(false);
+      }
     }
-  ];
+
+    loadHouseholdData();
+  }, [household]);
+
+  // Mock household members removed - now using live data from useEffect
+
+  // Mock invitations removed - now using live data from useEffect
 
   const isOwner = household?.role === 'owner' || household?.role === 'admin';
 
@@ -198,12 +159,12 @@ const HouseholdPage: React.FC = () => {
                 </div>
                 <div>
                   <div className="flex items-center space-x-2">
-                    <h4 className="font-semibold text-gray-900">{member.name}</h4>
+                    <h4 className="font-semibold text-gray-900">{member.display_name}</h4>
                     {getRoleIcon(member.role)}
                   </div>
                   <p className="text-sm text-gray-600">@{member.username}</p>
-                  <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getMemberTypeColor(member.memberType)} mt-1`}>
-                    {member.memberType}
+                  <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getMemberTypeColor(member.member_type)} mt-1`}>
+                    {member.member_type}
                   </div>
                 </div>
               </div>
@@ -227,7 +188,7 @@ const HouseholdPage: React.FC = () => {
 
             <div className="space-y-3">
               {/* Allowance Info */}
-              {member.monthlyAllowance > 0 && (
+              {member.monthly_allowance > 0 && (
                 <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-purple-800">Allowance</span>
@@ -236,12 +197,12 @@ const HouseholdPage: React.FC = () => {
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
                       <span className="text-purple-600">Monthly:</span>
-                      <div className="font-semibold text-purple-800">${member.monthlyAllowance}</div>
+                      <div className="font-semibold text-purple-800">${member.monthly_allowance}</div>
                     </div>
                     <div>
                       <span className="text-purple-600">Balance:</span>
-                      <div className={`font-semibold ${member.allowanceBalance > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        ${member.allowanceBalance.toFixed(2)}
+                      <div className={`font-semibold ${member.allowance_balance > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        ${member.allowance_balance.toFixed(2)}
                       </div>
                     </div>
                   </div>
@@ -254,26 +215,26 @@ const HouseholdPage: React.FC = () => {
                 <div className="space-y-1 text-xs">
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600">Edit Budget:</span>
-                    <span className={member.canEditBudget ? 'text-green-600' : 'text-red-600'}>
-                      {member.canEditBudget ? 'Yes' : 'No'}
+                    <span className={member.can_edit_budget ? 'text-green-600' : 'text-red-600'}>
+                      {member.can_edit_budget ? 'Yes' : 'No'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600">Add Transactions:</span>
-                    <span className={member.canAddTransactions ? 'text-green-600' : 'text-red-600'}>
-                      {member.canAddTransactions ? 'Yes' : 'No'}
+                    <span className={member.can_add_transactions ? 'text-green-600' : 'text-red-600'}>
+                      {member.can_add_transactions ? 'Yes' : 'No'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600">Requires Approval:</span>
-                    <span className={member.requiresApproval ? 'text-yellow-600' : 'text-green-600'}>
-                      {member.requiresApproval ? 'Yes' : 'No'}
+                    <span className={member.requires_approval ? 'text-yellow-600' : 'text-green-600'}>
+                      {member.requires_approval ? 'Yes' : 'No'}
                     </span>
                   </div>
-                  {member.monthlySpendingLimit && (
+                  {member.monthly_spending_limit && (
                     <div className="flex items-center justify-between">
                       <span className="text-gray-600">Spending Limit:</span>
-                      <span className="text-gray-800">${member.monthlySpendingLimit}</span>
+                      <span className="text-gray-800">${member.monthly_spending_limit}</span>
                     </div>
                   )}
                 </div>
@@ -281,8 +242,8 @@ const HouseholdPage: React.FC = () => {
 
               {/* Activity */}
               <div className="text-xs text-gray-500">
-                <div>Joined: {member.joinedDate}</div>
-                <div>Last active: {member.lastActive}</div>
+                <div>Joined: {new Date(member.joined_at).toLocaleDateString()}</div>
+                <div>Last active: {new Date(member.joined_at).toLocaleDateString()}</div>
               </div>
             </div>
           </div>

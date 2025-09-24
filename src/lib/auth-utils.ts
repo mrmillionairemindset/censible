@@ -395,3 +395,80 @@ export async function searchUsersByUsername(query: string): Promise<UserProfile[
 
   return data || [];
 }
+
+/**
+ * Get household members for the user's household
+ */
+export interface HouseholdMember {
+  id: string;
+  user_id: string;
+  username: string;
+  display_name: string;
+  email: string;
+  role: string;
+  member_type: string;
+  joined_at: string;
+  monthly_allowance: number;
+  allowance_balance: number;
+  monthly_spending_limit: number | null;
+  can_edit_budget: boolean;
+  can_add_transactions: boolean;
+  requires_approval: boolean;
+  avatar_url?: string;
+}
+
+export async function getHouseholdMembers(): Promise<HouseholdMember[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
+  const householdInfo = await getUserHousehold();
+  if (!householdInfo.household_id) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from('household_members')
+    .select(`
+      id,
+      user_id,
+      role,
+      member_type,
+      joined_at,
+      monthly_allowance,
+      allowance_balance,
+      monthly_spending_limit,
+      can_edit_budget,
+      can_add_transactions,
+      requires_approval,
+      display_name,
+      profiles:user_id (
+        username,
+        email,
+        avatar_url
+      )
+    `)
+    .eq('household_id', householdInfo.household_id)
+    .order('role', { ascending: false }) // owners first, then members
+    .order('joined_at', { ascending: true });
+
+  if (error) throw error;
+
+  return data?.map((member: any) => ({
+    id: member.id,
+    user_id: member.user_id,
+    username: member.profiles?.username || 'unknown',
+    display_name: member.display_name || member.profiles?.username || 'Unknown User',
+    email: member.profiles?.email || '',
+    role: member.role,
+    member_type: member.member_type || 'adult',
+    joined_at: member.joined_at,
+    monthly_allowance: member.monthly_allowance || 0,
+    allowance_balance: member.allowance_balance || 0,
+    monthly_spending_limit: member.monthly_spending_limit,
+    can_edit_budget: member.can_edit_budget || false,
+    can_add_transactions: member.can_add_transactions || false,
+    requires_approval: member.requires_approval || false,
+    avatar_url: member.profiles?.avatar_url
+  })) || [];
+}
