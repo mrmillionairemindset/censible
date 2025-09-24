@@ -89,12 +89,20 @@
 ## 🔄 Development Workflow
 **MANDATORY: Create commit after EVERY significant change to app code:**
 1. Complete any implementation/fix/feature work
-2. Immediately create a commit with descriptive message
-3. **ALWAYS provide commit in this exact format:** `git commit -m "[commit message]"`
-4. **ONLY include app functionality changes** - No mentions of documentation or local scripts
-5. **NEVER mention "Claude" in commit messages** - Focus only on what was changed in the application
-6. Use conventional commit format: `feat:`, `fix:`, `refactor:`, etc.
-7. Commit covers the actual functionality added/changed, not the development process
+2. Stage all changes: `git add .`
+3. Create commit with descriptive message: `git commit -m "[commit message]"`
+4. Push to remote: `git push origin master`
+5. **ONLY include app functionality changes** - No mentions of documentation or local scripts
+6. **NEVER mention "Claude" in commit messages** - Focus only on what was changed in the application
+7. Use conventional commit format: `feat:`, `fix:`, `refactor:`, etc.
+8. Commit covers the actual functionality added/changed, not the development process
+
+**Complete commit sequence:**
+```bash
+git add .
+git commit -m "[commit message]"
+git push origin master
+```
 
 **Example good commits with proper format:**
 - `git commit -m "feat: Add live database queries for household member management"`

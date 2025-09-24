@@ -1,27 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Calendar, AlertTriangle, CheckCircle, Clock, DollarSign, Repeat, Edit3, Trash2, Bell } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { CategoryType } from '../types';
 import CategorySelect from '../components/UI/CategorySelect';
 import CategoryBadge from '../components/UI/CategoryBadge';
+import {
+  getHouseholdBills,
+  getUpcomingBills,
+  getRecurringExpenses,
+  createBill,
+  updateBill,
+  markBillPaid,
+  deleteBill,
+  Bill as DatabaseBill
+} from '../lib/auth-utils';
+import toast from 'react-hot-toast';
 
-interface Bill {
-  id: string;
-  name: string;
-  description?: string;
-  amount: number;
-  dueDate: string;
-  frequency: 'monthly' | 'weekly' | 'quarterly' | 'yearly' | 'one-time';
-  category: CategoryType;
-  paymentMethod: string;
-  status: 'paid' | 'pending' | 'overdue';
-  isAutomatic: boolean;
-  reminderDays: number;
-  lastPaid?: string;
-  nextDue: string;
-  assignedTo?: string;
-  notes?: string;
-}
+// Using Bill interface from auth-utils.ts
+// Using DatabaseBill as the main Bill interface
 
 interface RecurringExpense {
   id: string;
@@ -42,7 +38,12 @@ const BillsPage: React.FC = () => {
   const [showAddSubscription, setShowAddSubscription] = useState(false);
   const [selectedBill, setSelectedBill] = useState<string | null>(null);
   const [editingSubscription, setEditingSubscription] = useState<RecurringExpense | null>(null);
-  const [editingBill, setEditingBill] = useState<Bill | null>(null);
+  const [editingBill, setEditingBill] = useState<DatabaseBill | null>(null);
+
+  // Real data state
+  const [upcomingBills, setUpcomingBills] = useState<DatabaseBill[]>([]);
+  const [recurringExpenses, setRecurringExpenses] = useState<DatabaseBill[]>([]);
+  const [loading, setLoading] = useState(true);
   const [newBill, setNewBill] = useState({
     name: '',
     description: '',
@@ -63,40 +64,7 @@ const BillsPage: React.FC = () => {
     startDate: ''
   });
 
-  // Mock data - will be replaced with real data from database
-  const [recurringExpenses, setRecurringExpenses] = useState<RecurringExpense[]>([
-    {
-      id: '1',
-      name: 'Netflix Subscription',
-      amount: 15.99,
-      frequency: 'Monthly',
-      category: 'entertainment',
-      isActive: true,
-      startDate: '2025-01-15',
-      reminderEnabled: false
-    },
-    {
-      id: '2',
-      name: 'Gym Membership',
-      amount: 89.99,
-      frequency: 'Monthly',
-      category: 'personal-care',
-      isActive: true,
-      startDate: '2025-03-01',
-      reminderEnabled: true
-    },
-    {
-      id: '3',
-      name: 'Amazon Prime',
-      amount: 139.00,
-      frequency: 'Yearly',
-      category: 'shopping',
-      isActive: true,
-      startDate: '2025-01-01',
-      endDate: '2025-12-31',
-      reminderEnabled: true
-    }
-  ]);
+  // Mock recurring expenses removed - now using live data from useEffect
 
   // Mock data - will be replaced with real data from database
   const [upcomingBills, setUpcomingBills] = useState<Bill[]>([
