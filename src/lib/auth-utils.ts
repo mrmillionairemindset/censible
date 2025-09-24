@@ -472,3 +472,200 @@ export async function getHouseholdMembers(): Promise<HouseholdMember[]> {
     avatar_url: member.profiles?.avatar_url
   })) || [];
 }
+
+/**
+ * Bills Management Functions
+ */
+
+export interface Bill {
+  id: string;
+  household_id: string;
+  created_by: string;
+  name: string;
+  description?: string;
+  amount: number;
+  due_date?: string;
+  frequency: 'monthly' | 'weekly' | 'quarterly' | 'yearly' | 'one-time';
+  category: string;
+  payment_method?: string;
+  status: 'paid' | 'pending' | 'overdue';
+  is_automatic: boolean;
+  is_recurring: boolean;
+  is_active: boolean;
+  reminder_days: number;
+  reminder_enabled: boolean;
+  start_date?: string;
+  end_date?: string;
+  last_paid?: string;
+  next_due?: string;
+  assigned_to?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Get all bills for the user's household
+ */
+export async function getHouseholdBills(): Promise<Bill[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
+  const householdInfo = await getUserHousehold();
+  if (!householdInfo.household_id) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from('bills')
+    .select('*')
+    .eq('household_id', householdInfo.household_id)
+    .eq('is_active', true)
+    .order('due_date', { ascending: true });
+
+  if (error) throw error;
+
+  return data || [];
+}
+
+/**
+ * Get upcoming bills (next 30 days)
+ */
+export async function getUpcomingBills(daysAhead: number = 30): Promise<Bill[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
+  const householdInfo = await getUserHousehold();
+  if (!householdInfo.household_id) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from('bills')
+    .select('*')
+    .eq('household_id', householdInfo.household_id)
+    .eq('is_active', true)
+    .eq('status', 'pending')
+    .gte('due_date', new Date().toISOString().split('T')[0])
+    .lte('due_date', new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+    .order('due_date', { ascending: true });
+
+  if (error) throw error;
+
+  return data || [];
+}
+
+/**
+ * Get recurring expenses (subscriptions)
+ */
+export async function getRecurringExpenses(): Promise<Bill[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
+  const householdInfo = await getUserHousehold();
+  if (!householdInfo.household_id) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from('bills')
+    .select('*')
+    .eq('household_id', householdInfo.household_id)
+    .eq('is_recurring', true)
+    .eq('is_active', true)
+    .order('name', { ascending: true });
+
+  if (error) throw error;
+
+  return data || [];
+}
+
+/**
+ * Create a new bill
+ */
+export async function createBill(bill: Omit<Bill, 'id' | 'household_id' | 'created_by' | 'created_at' | 'updated_at'>) {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
+  const householdInfo = await getUserHousehold();
+  if (!householdInfo.household_id) {
+    throw new Error('User is not part of a household');
+  }
+
+  const { data, error } = await supabase
+    .from('bills')
+    .insert({
+      ...bill,
+      household_id: householdInfo.household_id,
+      created_by: user.id
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return data;
+}
+
+/**
+ * Update a bill
+ */
+export async function updateBill(billId: string, updates: Partial<Bill>) {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
+  const { data, error } = await supabase
+    .from('bills')
+    .update(updates)
+    .eq('id', billId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return data;
+}
+
+/**
+ * Mark a bill as paid
+ */
+export async function markBillPaid(billId: string, paymentDate?: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
+  const { data, error } = await supabase
+    .from('bills')
+    .update({
+      status: 'paid',
+      last_paid: paymentDate || new Date().toISOString().split('T')[0]
+    })
+    .eq('id', billId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return data;
+}
+
+/**
+ * Delete a bill
+ */
+export async function deleteBill(billId: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
+  const { error } = await supabase
+    .from('bills')
+    .update({ is_active: false })
+    .eq('id', billId);
+
+  if (error) throw error;
+}
