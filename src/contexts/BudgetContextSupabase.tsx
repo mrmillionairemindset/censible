@@ -249,10 +249,18 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
       }
 
       // Start fresh with income sources from database (no localStorage fallback)
-      let savedIncomeSources: IncomeSource[] = [];
+      let savedIncomeSources: IncomeSource[] = []; // Fixed user reference
       try {
-        if (state.user) {
-          savedIncomeSources = await IncomeSourceService.getIncomeSources(state.user.id, state.user.household_id);
+        // Get the authenticated user for income loading
+        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+        if (authUser && !authError) {
+          console.log('[DEBUG] Loading income sources for user:', authUser.id);
+          console.log('[DEBUG] User email:', authUser.email);
+          savedIncomeSources = await IncomeSourceService.getIncomeSources(authUser.id, undefined);
+          console.log('[DEBUG] Loaded income sources from database:', savedIncomeSources.length);
+        } else {
+          console.log('[DEBUG] No authenticated user, skipping income source loading');
+          if (authError) console.error('[DEBUG] Auth error:', authError);
         }
       } catch (error) {
         console.error('Failed to load income sources from database:', error);
@@ -875,17 +883,21 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
   };
 
   const addIncomeSource = async (incomeSource: Omit<IncomeSource, 'id'>) => {
+    console.log('[DEBUG] addIncomeSource called with:', incomeSource);
     if (!state.user) {
+      console.error('[DEBUG] No user authenticated for addIncomeSource');
       throw new Error('User not authenticated');
     }
 
     try {
+      console.log('[DEBUG] Creating income source for user:', state.user.id);
       const newIncomeSource = await IncomeSourceService.createIncomeSource(
         incomeSource,
         state.user.id,
-        state.user.household_id
+        undefined // Don't use household_id for now
       );
 
+      console.log('[DEBUG] Income source created successfully:', newIncomeSource);
       setState(prev => ({
         ...prev,
         incomeSources: [...prev.incomeSources, newIncomeSource]
@@ -894,8 +906,9 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
       // Update localStorage backup
       const updatedSources = [...state.incomeSources, newIncomeSource];
       localStorage.setItem('centsible_income_sources', JSON.stringify(updatedSources));
+      console.log('[DEBUG] Income source added to state and localStorage');
     } catch (error) {
-      console.error('Failed to add income source:', error);
+      console.error('[DEBUG] Failed to add income source:', error);
       throw error;
     }
   };

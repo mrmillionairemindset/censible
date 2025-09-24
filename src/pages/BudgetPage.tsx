@@ -21,7 +21,9 @@ const BudgetPage: React.FC = () => {
   const {
     budget,
     incomeSources,
-    setIncomeSources,
+    addIncomeSource,
+    updateIncomeSource,
+    deleteIncomeSource,
     updateCategoryBudgets,
     deleteCategory
   } = useBudget();
@@ -62,33 +64,43 @@ const BudgetPage: React.FC = () => {
   });
 
   // Handler to add new income source - using Supabase context
-  const handleAddIncome = () => {
+  const handleAddIncome = async () => {
+    console.log('🔧🔧🔧 BUDGET PAGE - handleAddIncome called');
     if (!newIncome.source || !newIncome.amount) return;
 
-    if (editingIncome) {
-      // Update existing income source
-      const updatedSources = incomeSources.map(source =>
-        source.id === editingIncome
-          ? { ...source, source: newIncome.source, amount: parseFloat(newIncome.amount), frequency: newIncome.frequency as any }
-          : source
-      );
-      setIncomeSources(updatedSources);
-      setEditingIncome(null);
-    } else {
-      // Add new income source
-      const incomeSource: IncomeSource = {
-        id: Date.now().toString(),
-        source: newIncome.source,
-        amount: parseFloat(newIncome.amount),
-        frequency: newIncome.frequency as any,
-        startDate: new Date(),
-        isActive: true
-      };
-      setIncomeSources([...incomeSources, incomeSource]);
-    }
+    try {
+      if (editingIncome) {
+        // Update existing income source
+        console.log('🔧 Updating income source:', editingIncome);
+        const existingSource = incomeSources.find(s => s.id === editingIncome);
+        if (existingSource) {
+          const updates = {
+            source: newIncome.source,
+            amount: parseFloat(newIncome.amount),
+            frequency: newIncome.frequency as any
+          };
+          await updateIncomeSource(editingIncome, updates);
+        }
+        setEditingIncome(null);
+      } else {
+        // Add new income source
+        console.log('🔧 Adding new income source');
+        const incomeSource: Omit<IncomeSource, 'id'> = {
+          source: newIncome.source,
+          amount: parseFloat(newIncome.amount),
+          frequency: newIncome.frequency as any,
+          startDate: new Date(),
+          isActive: true
+        };
+        await addIncomeSource(incomeSource);
+      }
 
-    setNewIncome({ source: '', amount: '', frequency: 'monthly' });
-    setShowAddIncome(false);
+      setNewIncome({ source: '', amount: '', frequency: 'monthly' });
+      setShowAddIncome(false);
+      console.log('🔧 Income operation completed successfully');
+    } catch (error) {
+      console.error('🔧 Failed to save income:', error);
+    }
   };
 
   // Handler to edit income source
@@ -106,10 +118,16 @@ const BudgetPage: React.FC = () => {
   };
 
   // Handler to delete income source
-  const handleDeleteIncome = (incomeId: string) => {
+  const handleDeleteIncome = async (incomeId: string) => {
+    console.log('🔧🔧🔧 BUDGET PAGE - handleDeleteIncome called:', incomeId);
     if (!window.confirm('Are you sure you want to delete this income source?')) return;
-    const updatedSources = incomeSources.filter(source => source.id !== incomeId);
-    setIncomeSources(updatedSources);
+
+    try {
+      await deleteIncomeSource(incomeId);
+      console.log('🔧 Income deleted successfully');
+    } catch (error) {
+      console.error('🔧 Failed to delete income:', error);
+    }
   };
 
   // Calculate monthly equivalent for different frequencies

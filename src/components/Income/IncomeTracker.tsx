@@ -7,7 +7,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { useBudget } from '../../contexts/BudgetContextSupabase';
 
 const IncomeTracker: React.FC = () => {
-  const { incomeSources, setIncomeSources } = useBudget();
+  console.log('🔧🔧🔧 IncomeTracker component RENDERED');
+  const { incomeSources, addIncomeSource, updateIncomeSource, deleteIncomeSource } = useBudget();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingIncome, setEditingIncome] = useState<IncomeSource | null>(null);
   const [showInactive, setShowInactive] = useState(false);
@@ -41,19 +42,17 @@ const IncomeTracker: React.FC = () => {
       .reduce((total, income) => total + convertToMonthly(income.amount, income.frequency), 0);
   };
 
-  const handleAddIncome = () => {
+  const handleAddIncome = async () => {
+    console.log('🔧🔧🔧 INCOME BUTTON CLICKED - handleAddIncome START');
     console.log('🔧 handleAddIncome called');
     console.log('🔧 newIncome:', newIncome);
-    console.log('🔧 setIncomeSources function:', setIncomeSources);
 
     if (!newIncome.source || !newIncome.amount) {
       toast.error('Please fill in all required fields');
       return;
     }
 
-    const incomeId = uuidv4();
-    const income: IncomeSource = {
-      id: incomeId,
+    const income: Omit<IncomeSource, 'id'> = {
       source: newIncome.source,
       amount: parseFloat(newIncome.amount),
       frequency: newIncome.frequency,
@@ -63,35 +62,29 @@ const IncomeTracker: React.FC = () => {
       description: newIncome.description || undefined
     };
 
-    console.log('🔧 About to call setIncomeSources with:', [...incomeSources, income]);
-    setIncomeSources([...incomeSources, income]);
-    console.log('🔧 setIncomeSources called successfully');
+    try {
+      console.log('🔧 About to call addIncomeSource with:', income);
+      await addIncomeSource(income);
+      console.log('🔧 addIncomeSource called successfully');
 
-    // Reset form
-    setNewIncome({
-      source: '',
-      amount: '',
-      frequency: 'monthly',
-      category: 'salary',
-      description: ''
-    });
-    setShowAddForm(false);
+      // Reset form
+      setNewIncome({
+        source: '',
+        amount: '',
+        frequency: 'monthly',
+        category: 'salary',
+        description: ''
+      });
+      setShowAddForm(false);
 
-    // Success feedback
-    const monthlyAmount = convertToMonthly(income.amount, income.frequency);
-    toast.success(`✅ New income added: ${income.source} ($${monthlyAmount.toFixed(0)}/month)`);
+      // Success feedback
+      const monthlyAmount = convertToMonthly(income.amount, income.frequency);
+      toast.success(`✅ New income added: ${income.source} ($${monthlyAmount.toFixed(0)}/month)`);
 
-    // Highlight animation
-    setHighlightedIncomeId(incomeId);
-    setTimeout(() => setHighlightedIncomeId(null), 1500);
-
-    // Auto-scroll to new income
-    setTimeout(() => {
-      const element = document.getElementById(`income-${incomeId}`);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    }, 100);
+    } catch (error) {
+      console.error('🔧 Failed to add income:', error);
+      toast.error('Failed to save income source. Please try again.');
+    }
   };
 
   const handleEditIncome = (income: IncomeSource) => {
@@ -106,7 +99,8 @@ const IncomeTracker: React.FC = () => {
     setShowAddForm(true);
   };
 
-  const handleUpdateIncome = () => {
+  const handleUpdateIncome = async () => {
+    console.log('🔧 handleUpdateIncome called');
     if (!editingIncome || !newIncome.source || !newIncome.amount) {
       toast.error('Please fill in all required fields');
       return;
@@ -121,32 +115,60 @@ const IncomeTracker: React.FC = () => {
       description: newIncome.description || undefined
     };
 
-    setIncomeSources(incomeSources.map(income =>
-      income.id === editingIncome.id ? updatedIncome : income
-    ));
+    try {
+      console.log('🔧 About to call updateIncomeSource with:', updatedIncome);
+      await updateIncomeSource(updatedIncome.id, updatedIncome);
+      console.log('🔧 updateIncomeSource called successfully');
 
-    setEditingIncome(null);
-    setNewIncome({
-      source: '',
-      amount: '',
-      frequency: 'monthly',
-      category: 'salary',
-      description: ''
-    });
-    setShowAddForm(false);
-    toast.success('Income source updated successfully!');
+      setEditingIncome(null);
+      setNewIncome({
+        source: '',
+        amount: '',
+        frequency: 'monthly',
+        category: 'salary',
+        description: ''
+      });
+      setShowAddForm(false);
+      toast.success('Income source updated successfully!');
+    } catch (error) {
+      console.error('🔧 Failed to update income:', error);
+      toast.error('Failed to update income source. Please try again.');
+    }
   };
 
-  const handleDeleteIncome = (id: string) => {
+  const handleDeleteIncome = async (id: string) => {
+    console.log('🔧 handleDeleteIncome called with id:', id);
     if (!window.confirm('Are you sure you want to delete this income source?')) return;
-    setIncomeSources(incomeSources.filter(income => income.id !== id));
-    toast.success('Income source deleted');
+
+    try {
+      console.log('🔧 About to call deleteIncomeSource with id:', id);
+      await deleteIncomeSource(id);
+      console.log('🔧 deleteIncomeSource called successfully');
+      toast.success('Income source deleted');
+    } catch (error) {
+      console.error('🔧 Failed to delete income:', error);
+      toast.error('Failed to delete income source. Please try again.');
+    }
   };
 
-  const toggleIncomeActive = (id: string) => {
-    setIncomeSources(incomeSources.map(income =>
-      income.id === id ? { ...income, isActive: !income.isActive } : income
-    ));
+  const toggleIncomeActive = async (id: string) => {
+    console.log('🔧 toggleIncomeActive called with id:', id);
+    const income = incomeSources.find(i => i.id === id);
+    if (!income) {
+      console.error('🔧 Income not found for toggle:', id);
+      return;
+    }
+
+    const updatedIncome = { ...income, isActive: !income.isActive };
+
+    try {
+      console.log('🔧 About to call updateIncomeSource for toggle with:', updatedIncome);
+      await updateIncomeSource(updatedIncome.id, updatedIncome);
+      console.log('🔧 toggleIncomeActive updateIncomeSource called successfully');
+    } catch (error) {
+      console.error('🔧 Failed to toggle income active status:', error);
+      toast.error('Failed to update income status. Please try again.');
+    }
   };
 
   const getCategoryIcon = (category: IncomeSource['category']) => {
@@ -175,7 +197,10 @@ const IncomeTracker: React.FC = () => {
         </div>
 
         <button
-          onClick={() => setShowAddForm(true)}
+          onClick={() => {
+            console.log('🔧🔧🔧 ADD INCOME BUTTON CLICKED - opening form');
+            setShowAddForm(true);
+          }}
           className="flex items-center gap-2 h-11 px-6 bg-[#27AE60] text-white rounded-lg hover:bg-[#229954] transition-colors font-medium shadow-sm"
         >
           <Plus className="w-4 h-4" />
