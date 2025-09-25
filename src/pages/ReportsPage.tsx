@@ -31,6 +31,79 @@ const ReportsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Export functionality
+  const handleExport = () => {
+    try {
+      // Create CSV content based on current report data
+      const csvContent = generateCSVReport();
+
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+
+      if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `budget-report-${selectedPeriod}-${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (err) {
+      console.error('Export failed:', err);
+      setError('Failed to export report');
+    }
+  };
+
+  const generateCSVReport = () => {
+    let csv = '';
+
+    // Header
+    csv += `Budget Report - ${selectedPeriod.charAt(0).toUpperCase() + selectedPeriod.slice(1)}\n`;
+    csv += `Generated on: ${new Date().toLocaleDateString()}\n\n`;
+
+    // Summary
+    csv += 'SUMMARY\n';
+    csv += `Total Spent,${reportSummary.totalSpent}\n`;
+    csv += `Average Daily Spend,${reportSummary.averageDailySpend.toFixed(2)}\n`;
+    csv += `Savings Rate,${reportSummary.savingsRate.toFixed(1)}%\n`;
+    csv += `Family Members,${reportSummary.familyMembers}\n\n`;
+
+    // Spending by Member
+    if (spendingByMember.length > 0) {
+      csv += 'SPENDING BY MEMBER\n';
+      csv += 'Member,Amount,Percentage,Transactions\n';
+      spendingByMember.forEach(member => {
+        csv += `${member.member},${member.amount},${member.percentage}%,${member.transactions}\n`;
+      });
+      csv += '\n';
+    }
+
+    // Category Breakdown
+    if (categoryBreakdown.length > 0) {
+      csv += 'SPENDING BY CATEGORY\n';
+      csv += 'Category,Amount,Budgeted,Variance,Percentage of Budget\n';
+      categoryBreakdown.forEach(category => {
+        const percentageOfBudget = category.budgeted > 0 ? ((category.amount / category.budgeted) * 100).toFixed(1) : '0';
+        csv += `${category.category},${category.amount},${category.budgeted},${category.variance},${percentageOfBudget}%\n`;
+      });
+      csv += '\n';
+    }
+
+    // Monthly Trends
+    if (monthlyTrends.length > 0) {
+      csv += 'MONTHLY TRENDS\n';
+      csv += 'Month,Income,Expenses,Savings,Savings Rate\n';
+      monthlyTrends.forEach(month => {
+        const savingsRate = month.income > 0 ? ((month.savings / month.income) * 100).toFixed(1) : '0';
+        csv += `${month.month},${month.income},${month.expenses},${month.savings},${savingsRate}%\n`;
+      });
+    }
+
+    return csv;
+  };
+
   // Load reports data from database
   const loadReportsData = async () => {
     try {
@@ -415,7 +488,11 @@ const ReportsPage: React.FC = () => {
             <option value="quarter">This Quarter</option>
             <option value="year">This Year</option>
           </select>
-          <button className="flex items-center space-x-2 bg-mint-600 text-white px-4 py-2 rounded-lg hover:bg-mint-700">
+          <button
+            onClick={handleExport}
+            className="flex items-center space-x-2 bg-mint-600 text-white px-4 py-2 rounded-lg hover:bg-mint-700"
+            title="Export report as CSV"
+          >
             <Download className="w-4 h-4" />
             <span>Export</span>
           </button>
