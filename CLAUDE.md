@@ -659,29 +659,63 @@ getSubscriptionStatus() // Get current status
 - **Recent Activity** - Login history, recent changes
 - **Quick Settings** - Most common toggles
 
-### 🎯 Implementation Phases
+### 🎯 Implementation Phases (Database-Aware)
 
-#### **Phase 1: Essential (MVP)**
+#### **Phase 0: Database Foundation** 🗃️
+**Database Changes Required:**
+1. Add missing fields to `profiles` table: `bio`, `timezone`, `language`, `phone`
+2. Create `user_preferences` table: UI themes, display preferences
+3. Create basic `audit_logs` table: Account changes, login tracking
+4. Extend household permission checks for settings access
+
+**SQL Migration needed before Phase 1**
+
+#### **Phase 1: Essential Settings (MVP)** 🚀
+**UI Implementation:**
 1. Update user dropdown with proper navigation
 2. Create basic About page
 3. Settings landing page with navigation
-4. Profile page (basic info editing)
-5. Account page (email, password)
+4. Profile page (edit display_name, username, bio) - **Uses existing profiles table**
+5. Account page (email change, password) - **Uses Supabase auth + profiles**
 
-#### **Phase 2: Subscription Integration**
-6. Integrate existing SubscriptionManager into settings
-7. Create billing section using Stripe portal
-8. Usage limits display
+**Database Integration:**
+- Read/write to existing `profiles` table
+- Basic household permission checks (owner vs member)
+- No new tables required (uses Phase 0 foundation)
 
-#### **Phase 3: Advanced Features**
-9. Security settings (2FA, sessions)
-10. Preferences (theme, notifications)
-11. Data export functionality
+#### **Phase 2: Subscription Integration** 💳
+**UI Implementation:**
+6. Integrate existing `SubscriptionManager` into `/settings/subscription`
+7. Create billing section using existing `createCustomerPortalSession()`
+8. Usage limits display from existing `households` table fields
 
-#### **Phase 4: Polish & Enhancement**
-12. Avatar upload
-13. Advanced notification settings
-14. Connected accounts preparation
+**Database Integration:**
+- **Reuse existing**: `households.subscription_tier`, `max_members`, `max_savings_goals`
+- **Reuse existing**: `household_members` permission fields
+- **Reuse existing**: Stripe integration components
+- Add subscription-based UI restrictions (Free vs Premium settings access)
+
+#### **Phase 3: Security & Preferences** 🔐
+**Database Changes Required:**
+9. Create `user_sessions` table: Active login tracking
+10. Create `user_security` table: 2FA settings, backup codes
+11. Extend `user_preferences`: Notification settings, theme preferences
+
+**UI Implementation:**
+12. Security settings page (2FA, active sessions)
+13. Preferences page (theme, notifications, timezone)
+14. Data export functionality
+
+#### **Phase 4: Advanced Features & Polish** ✨
+**Database Changes Required:**
+15. Create `notification_settings` table: Granular notification preferences per household member
+16. Extend `audit_logs`: Comprehensive activity tracking
+17. Add avatar upload integration (extend existing `profiles.avatar_url`)
+
+**UI Implementation:**
+18. Advanced notification settings (per-household member on Premium)
+19. Comprehensive audit log display
+20. Avatar upload with file handling
 
 ### 🔧 Technical Implementation Notes
 
@@ -708,11 +742,55 @@ src/pages/settings/
 - `/settings/preferences` - UI preferences
 - `/about` - About page (moved from footer)
 
+#### **Database Schema Considerations:**
+
+**🗃️ Existing Schema (DO NOT MODIFY):**
+```sql
+-- profiles table (EXISTS - can extend)
+profiles: id, username, display_name, email, avatar_url, created_at, updated_at
+
+-- households table (EXISTS - has subscription fields)
+households: subscription_tier, max_members, max_savings_goals, data_retention_months
+
+-- household_members table (EXISTS - has permission fields)
+household_members: role, can_edit_budget, can_add_transactions, spending_limit, member_type
+```
+
+**🔄 Required New Tables:**
+```sql
+-- Phase 0: Foundation tables
+user_preferences (id, user_id, theme, timezone, language, notifications_enabled, created_at)
+audit_logs (id, user_id, household_id, action, details, ip_address, created_at)
+
+-- Phase 3: Security tables
+user_sessions (id, user_id, session_token, ip_address, user_agent, last_active, expires_at)
+user_security (id, user_id, two_factor_enabled, backup_codes, trusted_devices, created_at)
+
+-- Phase 4: Advanced tables
+notification_settings (id, user_id, household_id, email_enabled, push_enabled, categories, quiet_hours)
+```
+
+**🔐 Subscription-Based Access Control:**
+```typescript
+// Settings access restrictions based on subscription tier
+const settingsAccess = {
+  free: ['profile', 'account', 'basic-preferences'],
+  premium: ['all-settings', 'advanced-security', 'per-member-notifications', 'audit-logs']
+};
+
+// Household permission checks
+const canAccessSettings = (user, household) => {
+  return household.subscription_tier === 'premium' || user.role === 'owner';
+};
+```
+
 #### **Integration with Existing Code:**
 - **User dropdown** - Update `MainNavigation.tsx` buttons to use proper routing
 - **Stripe components** - Import and use existing `SubscriptionManager`
 - **Auth context** - Use existing user/profile data from `useAuth()`
 - **Form handling** - Consistent with existing patterns in codebase
+- **Subscription checks** - Use existing `households` subscription fields for feature gating
+- **Permission system** - Leverage existing `household_members` role system
 
 ### ✅ Success Criteria
 - All user dropdown buttons functional
