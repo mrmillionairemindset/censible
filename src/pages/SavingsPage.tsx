@@ -143,6 +143,7 @@ const SavingsPage: React.FC = () => {
           deadline: newGoal.deadline || undefined,
           priority: newGoal.priority,
           auto_contribute: parseFloat(newGoal.autoContribute) || 0,
+          contributors: [profile?.username || 'You'],
           notes: newGoal.notes || undefined
         };
         await updateSavingsGoal(editingGoal, updates);
