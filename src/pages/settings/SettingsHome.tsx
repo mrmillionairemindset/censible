@@ -1,9 +1,11 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, Shield, Bell, CreditCard, Settings as SettingsIcon, Palette, Crown } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 const SettingsHome: React.FC = () => {
   const { user, profile, household } = useAuth();
+  const navigate = useNavigate();
 
   const settingsCategories = [
     {
@@ -40,7 +42,7 @@ const SettingsHome: React.FC = () => {
       icon: Palette,
       path: '/settings/preferences',
       color: 'bg-pink-100 text-pink-600',
-      available: household?.subscription_tier === 'premium'
+      available: household?.subscription_status === 'active' || household?.subscription_status === 'trialing'
     },
     {
       id: 'notifications',
@@ -49,7 +51,7 @@ const SettingsHome: React.FC = () => {
       icon: Bell,
       path: '/settings/notifications',
       color: 'bg-yellow-100 text-yellow-600',
-      available: household?.subscription_tier === 'premium'
+      available: household?.subscription_status === 'active' || household?.subscription_status === 'trialing'
     },
     {
       id: 'billing',
@@ -62,7 +64,7 @@ const SettingsHome: React.FC = () => {
     }
   ];
 
-  const isPremium = household?.subscription_tier === 'premium';
+  const isPremium = household?.subscription_status === 'active' || household?.subscription_status === 'trialing';
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
@@ -136,7 +138,7 @@ const SettingsHome: React.FC = () => {
                 <button
                   onClick={() => {
                     if (isAvailable) {
-                      window.location.href = category.path;
+                      navigate(category.path);
                     }
                   }}
                   disabled={!isAvailable}
@@ -180,7 +182,7 @@ const SettingsHome: React.FC = () => {
                   Get access to advanced preferences, notifications, security features, and more household members.
                 </p>
                 <button
-                  onClick={() => window.location.href = '/settings/subscription'}
+                  onClick={() => navigate('/settings/subscription')}
                   className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors"
                 >
                   Upgrade to Premium
@@ -195,21 +197,21 @@ const SettingsHome: React.FC = () => {
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
           <div className="grid md:grid-cols-3 gap-4">
             <button
-              onClick={() => window.location.href = '/help'}
+              onClick={() => navigate('/help')}
               className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left"
             >
               <div className="font-medium text-gray-900 mb-1">Get Help</div>
               <div className="text-sm text-gray-600">Browse help articles</div>
             </button>
             <button
-              onClick={() => window.location.href = '/contact'}
+              onClick={() => navigate('/contact')}
               className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left"
             >
               <div className="font-medium text-gray-900 mb-1">Contact Support</div>
               <div className="text-sm text-gray-600">Get personalized help</div>
             </button>
             <button
-              onClick={() => window.location.href = '/about'}
+              onClick={() => navigate('/about')}
               className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left"
             >
               <div className="font-medium text-gray-900 mb-1">About Centsible</div>

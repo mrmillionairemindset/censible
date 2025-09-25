@@ -36,6 +36,8 @@ import About from '../../pages/About';
 import SettingsHome from '../../pages/settings/SettingsHome';
 import ProfileSettings from '../../pages/settings/ProfileSettings';
 import AccountSettings from '../../pages/settings/AccountSettings';
+import SubscriptionSettings from '../../pages/settings/SubscriptionSettings';
+import BillingSettings from '../../pages/settings/BillingSettings';
 import CentsibleLogo from '../../assets/centsible-logo.png';
 
 const MainNavigation: React.FC = () => {
@@ -478,6 +480,8 @@ const MainNavigation: React.FC = () => {
           <Route path="/settings" element={<SettingsHome />} />
           <Route path="/settings/profile" element={<ProfileSettings />} />
           <Route path="/settings/account" element={<AccountSettings />} />
+          <Route path="/settings/subscription" element={<SubscriptionSettings />} />
+          <Route path="/settings/billing" element={<BillingSettings />} />
 
           {/* Catch all route - redirect to dashboard */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

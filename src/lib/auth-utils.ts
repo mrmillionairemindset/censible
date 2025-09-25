@@ -1637,5 +1637,27 @@ export async function deleteTransaction(transactionId: string): Promise<void> {
 
   if (error) throw error;
 }
+
+/**
+ * Get household usage statistics
+ */
+export async function getHouseholdStats(householdId: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  // Get savings goals count
+  const { data: savingsGoals, error: savingsError } = await supabase
+    .from('savings_goals')
+    .select('id')
+    .eq('household_id', householdId);
+
+  if (savingsError && savingsError.code !== 'PGRST116') {
+    console.error('Error fetching savings goals:', savingsError);
+  }
+
+  return {
+    savingsGoalCount: savingsGoals?.length || 0
+  };
+}
  
 
