@@ -448,12 +448,16 @@ const MainNavigation: React.FC = () => {
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             {/* Copyright */}
             <div className="flex items-center space-x-2 text-sm text-gray-600">
-              <img
-                src={CentsibleLogo}
-                alt="Centsible Logo"
-                className="h-6 w-auto"
-              />
-              <span>© {new Date().getFullYear()} Centsible™. All rights reserved.</span>
+              <span>© {new Date().getFullYear()} Centsible</span>
+              <div className="relative">
+                <img
+                  src={CentsibleLogo}
+                  alt="Centsible Logo"
+                  className="h-6 w-auto"
+                />
+                <span className="absolute -top-1 -right-1 text-xs font-bold text-gray-600">™</span>
+              </div>
+              <span>All rights reserved.</span>
             </div>
 
             {/* Links */}
