@@ -17,263 +17,214 @@ const Terms: React.FC = () => {
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm p-8 mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Terms of Service for Centsible
+            Terms of Service
           </h1>
           <p className="text-gray-600 text-lg">
-            Please read these terms carefully before using our budget tracking application.
+            Welcome to Censible. These Terms of Service govern your access to and use of our budgeting application and services.
           </p>
           <p className="text-sm text-gray-500 mt-4">
-            <strong>Effective Date:</strong> January 2024
+            <strong>Effective Date:</strong> September 25, 2025
           </p>
         </div>
 
         {/* Content Sections */}
         <div className="space-y-8">
-          {/* Service Description */}
+          {/* Eligibility */}
           <section className="bg-white rounded-lg shadow-sm p-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Service Description
+              1. Eligibility
             </h2>
             <div className="prose prose-gray max-w-none">
-              <p className="text-gray-700 leading-relaxed">
-                Centsible is a personal budget tracking application designed to help individuals manage their finances,
-                track expenses, set savings goals, and monitor income. Our service provides tools for organizing
-                financial data, generating insights, and maintaining financial awareness.
-              </p>
-              <p className="text-gray-700 leading-relaxed mt-4">
-                By using Centsible, you acknowledge that this is a personal finance management tool intended for
-                individual use and organization of your financial information.
-              </p>
+              <ul className="space-y-3">
+                <li className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-[#27AE60] rounded-full mt-2 flex-shrink-0"></span>
+                  <span>You must be at least 13 years old (or the minimum legal age in your country) to use Censible.</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-[#27AE60] rounded-full mt-2 flex-shrink-0"></span>
+                  <span>By using Censible, you represent that you meet these requirements and have the authority to accept these Terms.</span>
+                </li>
+              </ul>
             </div>
           </section>
 
-          {/* Important Disclaimers */}
+          {/* Your Account */}
           <section className="bg-white rounded-lg shadow-sm p-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Important Disclaimers
+              2. Your Account
             </h2>
             <div className="prose prose-gray max-w-none">
-              <div className="bg-amber-50 border-l-4 border-amber-400 p-6 mb-6">
-                <h3 className="text-lg font-bold text-amber-800 mb-3">⚠️ Financial Advice Disclaimer</h3>
-                <ul className="space-y-2 text-amber-800">
+              <ul className="space-y-3">
+                <li className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-[#27AE60] rounded-full mt-2 flex-shrink-0"></span>
+                  <span>You are responsible for maintaining the confidentiality of your login information.</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-[#27AE60] rounded-full mt-2 flex-shrink-0"></span>
+                  <span>You are responsible for all activities that occur under your account.</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-[#27AE60] rounded-full mt-2 flex-shrink-0"></span>
+                  <span>Notify us immediately if you suspect unauthorized use of your account.</span>
+                </li>
+              </ul>
+            </div>
+          </section>
+
+          {/* Acceptable Use */}
+          <section className="bg-white rounded-lg shadow-sm p-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              3. Acceptable Use
+            </h2>
+            <div className="prose prose-gray max-w-none">
+              <p className="mb-4">You agree <strong>not</strong> to:</p>
+              <ul className="space-y-3">
+                <li className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></span>
+                  <span>Use the Service for unlawful or fraudulent purposes.</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></span>
+                  <span>Attempt to gain unauthorized access to the Service or interfere with its functionality.</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></span>
+                  <span>Share, distribute, or exploit the Service in ways not permitted under these Terms.</span>
+                </li>
+              </ul>
+            </div>
+          </section>
+
+          {/* Personal Finance Disclaimer */}
+          <section className="bg-white rounded-lg shadow-sm p-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              4. Personal Finance Disclaimer
+            </h2>
+            <div className="prose prose-gray max-w-none">
+              <div className="bg-amber-50 border-l-4 border-amber-400 p-6">
+                <ul className="space-y-3">
                   <li className="flex items-start gap-3">
                     <span className="w-2 h-2 bg-amber-600 rounded-full mt-2 flex-shrink-0"></span>
-                    <span><strong>This is not professional financial advice.</strong> Centsible is a budgeting tool, not a financial advisory service.</span>
+                    <span>Censible provides budgeting and financial planning tools <strong>for informational purposes only.</strong></span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="w-2 h-2 bg-amber-600 rounded-full mt-2 flex-shrink-0"></span>
-                    <span><strong>For personal use only.</strong> The insights and suggestions are based on your data patterns, not professional analysis.</span>
+                    <span>We do not provide investment, tax, accounting, or legal advice.</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="w-2 h-2 bg-amber-600 rounded-full mt-2 flex-shrink-0"></span>
-                    <span><strong>We are not responsible for financial decisions</strong> you make based on information from this application.</span>
+                    <span>You are solely responsible for any financial decisions you make based on information from the Service.</span>
                   </li>
                 </ul>
               </div>
-
-              <div className="bg-blue-50 border-l-4 border-blue-400 p-6">
-                <h3 className="text-lg font-bold text-blue-800 mb-3">💡 Recommendation</h3>
-                <p className="text-blue-800">
-                  For professional financial advice, please consult with a qualified financial advisor, accountant,
-                  or financial planner who can provide personalized guidance based on your specific situation.
-                </p>
-              </div>
             </div>
           </section>
 
-          {/* User Responsibilities */}
+          {/* Subscriptions & Payments */}
           <section className="bg-white rounded-lg shadow-sm p-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              User Responsibilities
-            </h2>
-            <div className="prose prose-gray max-w-none">
-              <p className="mb-4">By using Centsible, you agree to:</p>
-              <ul className="space-y-3">
-                <li className="flex items-start gap-3">
-                  <span className="w-2 h-2 bg-[#27AE60] rounded-full mt-2 flex-shrink-0"></span>
-                  <span><strong>Maintain account security</strong> - Keep your login credentials private and secure. Use a strong password and do not share your account access.</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="w-2 h-2 bg-[#27AE60] rounded-full mt-2 flex-shrink-0"></span>
-                  <span><strong>Enter accurate information</strong> - Provide truthful and accurate financial data to ensure the application functions properly for your needs.</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="w-2 h-2 bg-[#27AE60] rounded-full mt-2 flex-shrink-0"></span>
-                  <span><strong>Use the service legally</strong> - Comply with all applicable laws and regulations in your jurisdiction.</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="w-2 h-2 bg-[#27AE60] rounded-full mt-2 flex-shrink-0"></span>
-                  <span><strong>Respect the service</strong> - Do not attempt to hack, reverse engineer, or disrupt the application's functionality.</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="w-2 h-2 bg-[#27AE60] rounded-full mt-2 flex-shrink-0"></span>
-                  <span><strong>Keep backups</strong> - While we strive to protect your data, we recommend keeping your own records of important financial information.</span>
-                </li>
-              </ul>
-            </div>
-          </section>
-
-          {/* Service Availability */}
-          <section className="bg-white rounded-lg shadow-sm p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Service Availability
+              5. Subscriptions & Payments
             </h2>
             <div className="prose prose-gray max-w-none">
               <ul className="space-y-3">
                 <li className="flex items-start gap-3">
                   <span className="w-2 h-2 bg-[#27AE60] rounded-full mt-2 flex-shrink-0"></span>
-                  <span><strong>Best effort uptime</strong> - We strive to keep Centsible available 24/7, but cannot guarantee uninterrupted service.</span>
+                  <span>Some features may require a paid subscription.</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="w-2 h-2 bg-[#27AE60] rounded-full mt-2 flex-shrink-0"></span>
-                  <span><strong>Maintenance windows</strong> - Scheduled maintenance may require temporary service interruptions, which we'll communicate in advance when possible.</span>
+                  <span>Subscription terms, pricing, and renewal conditions will be presented to you at the time of purchase.</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="w-2 h-2 bg-[#27AE60] rounded-full mt-2 flex-shrink-0"></span>
-                  <span><strong>Feature updates</strong> - We may modify, add, or remove features to improve the service with reasonable notice.</span>
+                  <span>All payments are processed through the app store or third-party payment processors.</span>
                 </li>
               </ul>
             </div>
           </section>
 
-          {/* Account Termination */}
+          {/* Intellectual Property */}
           <section className="bg-white rounded-lg shadow-sm p-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Account Termination
+              6. Intellectual Property
             </h2>
             <div className="prose prose-gray max-w-none">
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">You Can Terminate</h3>
-                  <ul className="space-y-2">
-                    <li className="flex items-start gap-3">
-                      <span className="w-2 h-2 bg-[#27AE60] rounded-full mt-2 flex-shrink-0"></span>
-                      <span>Delete your account anytime through account settings</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <span className="w-2 h-2 bg-[#27AE60] rounded-full mt-2 flex-shrink-0"></span>
-                      <span>Stop using the service at any time</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <span className="w-2 h-2 bg-[#27AE60] rounded-full mt-2 flex-shrink-0"></span>
-                      <span>Request data export before deletion</span>
-                    </li>
-                  </ul>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">We Can Terminate</h3>
-                  <ul className="space-y-2">
-                    <li className="flex items-start gap-3">
-                      <span className="w-2 h-2 bg-amber-500 rounded-full mt-2 flex-shrink-0"></span>
-                      <span>For violation of these terms</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <span className="w-2 h-2 bg-amber-500 rounded-full mt-2 flex-shrink-0"></span>
-                      <span>For illegal or harmful activity</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <span className="w-2 h-2 bg-amber-500 rounded-full mt-2 flex-shrink-0"></span>
-                      <span>With 30 days notice for service discontinuation</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-              <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                <p className="text-gray-800">
-                  <strong>Data Retention:</strong> Upon account termination, all data will be permanently deleted within 30 days.
-                  Make sure to export any important information before closing your account.
-                </p>
-              </div>
+              <ul className="space-y-3">
+                <li className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-[#27AE60] rounded-full mt-2 flex-shrink-0"></span>
+                  <span>All content, design, software, and trademarks related to Censible are owned by us or our licensors.</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-[#27AE60] rounded-full mt-2 flex-shrink-0"></span>
+                  <span>You are granted a limited, non-exclusive, non-transferable license to use the Service for personal purposes only.</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-[#27AE60] rounded-full mt-2 flex-shrink-0"></span>
+                  <span>You may not copy, modify, distribute, or reverse-engineer any part of the Service.</span>
+                </li>
+              </ul>
+            </div>
+          </section>
+
+          {/* Termination */}
+          <section className="bg-white rounded-lg shadow-sm p-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              7. Termination
+            </h2>
+            <div className="prose prose-gray max-w-none">
+              <p>We may suspend or terminate your access to the Service if you violate these Terms, misuse the Service, or for any other reason at our discretion.</p>
             </div>
           </section>
 
           {/* Limitation of Liability */}
           <section className="bg-white rounded-lg shadow-sm p-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Limitation of Liability
+              8. Limitation of Liability
             </h2>
             <div className="prose prose-gray max-w-none">
-              <p className="mb-4">
-                Centsible is provided "as is" without warranties of any kind. We are not liable for:
-              </p>
+              <p className="mb-4">To the maximum extent permitted by law:</p>
               <ul className="space-y-3">
                 <li className="flex items-start gap-3">
                   <span className="w-2 h-2 bg-gray-400 rounded-full mt-2 flex-shrink-0"></span>
-                  <span>Financial losses resulting from decisions made using the application</span>
+                  <span>Censible and its affiliates shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of the Service.</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="w-2 h-2 bg-gray-400 rounded-full mt-2 flex-shrink-0"></span>
-                  <span>Data loss or corruption (though we implement safeguards to prevent this)</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="w-2 h-2 bg-gray-400 rounded-full mt-2 flex-shrink-0"></span>
-                  <span>Service interruptions or technical issues</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="w-2 h-2 bg-gray-400 rounded-full mt-2 flex-shrink-0"></span>
-                  <span>Third-party integrations or external service failures</span>
+                  <span>Our total liability for any claims relating to the Service shall not exceed the amount you paid us (if any) in the 12 months before the claim.</span>
                 </li>
               </ul>
             </div>
           </section>
 
-          {/* Contact */}
+          {/* No Warranties */}
           <section className="bg-white rounded-lg shadow-sm p-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Contact Us
+              9. No Warranties
             </h2>
             <div className="prose prose-gray max-w-none">
-              <p className="mb-4">
-                If you have questions about these Terms of Service or need to report an issue, please contact us:
-              </p>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="font-semibold text-gray-900">Email:</p>
-                <a
-                  href="mailto:terms@centsible.app"
-                  className="text-[#27AE60] hover:text-[#219A52] font-medium"
-                >
-                  terms@centsible.app
-                </a>
-              </div>
-              <p className="mt-4 text-sm text-gray-600">
-                We will respond to your inquiry within 48 hours.
-              </p>
+              <p>The Service is provided on an <strong>"as is" and "as available" basis</strong> without warranties of any kind, express or implied, including fitness for a particular purpose or non-infringement.</p>
             </div>
           </section>
 
-          {/* Changes to Terms */}
+          {/* Changes to the Terms */}
           <section className="bg-white rounded-lg shadow-sm p-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Changes to These Terms
+              10. Changes to the Terms
             </h2>
             <div className="prose prose-gray max-w-none">
-              <p>
-                We may update these Terms of Service from time to time. When we do, we will:
-              </p>
-              <ul className="mt-4 space-y-2">
-                <li className="flex items-start gap-3">
-                  <span className="w-2 h-2 bg-[#27AE60] rounded-full mt-2 flex-shrink-0"></span>
-                  <span>Update the "Effective Date" at the top of this document</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="w-2 h-2 bg-[#27AE60] rounded-full mt-2 flex-shrink-0"></span>
-                  <span>Notify active users via email about significant changes</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="w-2 h-2 bg-[#27AE60] rounded-full mt-2 flex-shrink-0"></span>
-                  <span>Provide a 30-day notice period for material changes</span>
-                </li>
-              </ul>
-              <p className="mt-4 text-sm text-gray-600">
-                Continued use of the service after changes take effect constitutes acceptance of the new terms.
-              </p>
+              <p className="mb-4">We may update these Terms from time to time. If we make material changes, we will notify you via the Service or by other means. Continued use of the Service after updates constitutes acceptance of the new Terms.</p>
             </div>
           </section>
-        </div>
 
-        {/* Footer */}
-        <div className="text-center mt-12 text-gray-500 text-sm">
-          <p>© 2024 Centsible. All rights reserved.</p>
+          {/* Governing Law */}
+          <section className="bg-white rounded-lg shadow-sm p-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              11. Governing Law
+            </h2>
+            <div className="prose prose-gray max-w-none">
+              <p>These Terms shall be governed by and interpreted according to the laws of the United States, without regard to conflict of law principles.</p>
+            </div>
+          </section>
         </div>
       </div>
     </div>
