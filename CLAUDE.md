@@ -36,6 +36,8 @@
 - `MOCK_DATA_AUDIT.md` - Comprehensive audit of all mock data needing live database connections
 - `src/pages/BudgetPage.tsx` - Where income is actually managed
 - `src/hooks/useOCR.ts` - Existing OCR functionality (Tesseract.js)
+- `src/components/Subscription/SubscriptionManager.tsx` - Existing Stripe subscription management
+- `src/lib/stripe-utils.ts` - Stripe API functions and checkout/billing portal integration
 
 **Debugging & Maintenance Scripts:**
 - `run_migration_pg.js` - WORKING migration script using PostgreSQL client
@@ -545,5 +547,181 @@ ADD COLUMN IF NOT EXISTS receipt_url TEXT;
 ```
 
 **Prevention**: Always verify database schema matches TypeScript interfaces before deploying
+
+---
+
+## 📋 USER PROFILE & SETTINGS COMPREHENSIVE PLAN
+
+### 🎯 Implementation Strategy
+**Approach**: Build comprehensive settings structure integrating existing Stripe components
+**Priority**: Implement essential sections first, then expand to full feature set
+**Integration**: Use existing `SubscriptionManager.tsx` and `stripe-utils.ts` for billing/subscription
+
+### 📐 User Profile Dropdown Structure
+```json
+{
+  "userMenu": [
+    { "type": "link", "label": "Profile", "path": "/settings/profile" },
+    { "type": "link", "label": "Settings", "path": "/settings" },
+    { "type": "link", "label": "Help & Support", "path": "/help" },
+    { "type": "link", "label": "About Centsible", "path": "/about" },
+    { "type": "divider" },
+    { "type": "action", "label": "Sign out", "action": "signOut" }
+  ]
+}
+```
+
+### 🏗️ Comprehensive Settings Structure
+
+#### **1. Account Section** (`/settings/account`)
+- **Name** - Display name, first/last name
+- **Email** - Change email address
+- **Phone** - Phone number for security/notifications
+- **Password** - Change password with current password verification
+- **Connected Accounts** - Future: Bank integrations, OAuth providers
+- **Data & Privacy** - Data export, account deletion
+
+#### **2. Profile Section** (`/settings/profile`)
+- **Photo/Avatar** - Upload profile picture
+- **Username/Handle** - Unique identifier (@username)
+- **Bio** - Optional personal description
+- **Location/Timezone** - Public location, timezone settings
+- **Social Links** - Optional social media links
+
+#### **3. Preferences Section** (`/settings/preferences`)
+- **Language** - Interface language selection
+- **Timezone** - User timezone for date/time display
+- **Appearance** - Theme and visual settings:
+  - **Theme Mode** - Light, Dark, System
+  - **Accent Color** - Brand color customization
+  - **Typography Scale** - Compact, Cozy, Roomy
+  - **Contrast** - Normal, High
+  - **Reduce Motion** - On, Off
+
+#### **4. Notifications Section** (`/settings/notifications`)
+- **Channels** - Email, Push, SMS, In-app
+- **Categories** - Budget alerts, bill reminders, goal progress
+- **Digests** - Daily, Weekly, Off
+- **Quiet Hours** - Do not disturb schedule
+- **Test** - Send test notification
+
+#### **5. Billing Section** (`/settings/billing`) - **Uses Existing Components**
+- **Billing Address** - Address for invoices
+- **Payment Methods** - Credit cards, payment sources
+- **Invoices & Receipts** - Download past invoices
+- **Tax Info** - Tax ID, VAT numbers
+- **Credits/Coupons** - Applied discounts
+
+#### **6. Subscription Section** (`/settings/subscription`) - **Uses SubscriptionManager.tsx**
+- **Current Plan** - Display current subscription status
+- **Upgrade/Downgrade** - Plan selection and changes
+- **Add-ons** - Additional features
+- **Usage & Limits** - Current usage vs plan limits
+- **Cancel/Pause** - Subscription management
+
+#### **7. Security Section** (`/settings/security`)
+- **Two-Factor Auth** - TOTP, SMS, Security Keys
+- **Backup Codes** - Recovery codes
+- **Active Sessions** - Currently logged in devices
+- **Login History** - Recent login attempts
+- **Trusted Devices** - Remembered devices
+- **API & App Access** - Third-party integrations
+
+### 🔗 Stripe Integration Points
+
+#### **Current Stripe Functions Available:**
+```typescript
+// From stripe-utils.ts
+createHouseholdCheckoutSession(successUrl, cancelUrl) // Subscription signup
+createCustomerPortalSession(returnUrl) // Billing portal
+hasPremiumAccess() // Check subscription status
+getSubscriptionStatus() // Get current status
+```
+
+#### **Stripe Access Points in Settings:**
+1. **Settings → Subscription → Upgrade** → `createHouseholdCheckoutSession()`
+2. **Settings → Billing → Manage** → `createCustomerPortalSession()`
+3. **Usage limits reached** → Upgrade prompts → Stripe Checkout
+4. **Subscription page** → `SubscriptionManager` component
+
+### 📄 Additional Pages Required
+
+#### **About Page** (`/about`)
+- **App Information** - Version, build, last update
+- **Company Info** - About Centsible, mission statement
+- **Legal** - Links to Privacy Policy, Terms, licenses
+- **Credits** - Third-party libraries, attributions
+- **Contact** - Link to support, feedback
+
+#### **Settings Landing Page** (`/settings`)
+- **Overview** - Account status, subscription, quick actions
+- **Navigation** - Cards/links to all settings sections
+- **Recent Activity** - Login history, recent changes
+- **Quick Settings** - Most common toggles
+
+### 🎯 Implementation Phases
+
+#### **Phase 1: Essential (MVP)**
+1. Update user dropdown with proper navigation
+2. Create basic About page
+3. Settings landing page with navigation
+4. Profile page (basic info editing)
+5. Account page (email, password)
+
+#### **Phase 2: Subscription Integration**
+6. Integrate existing SubscriptionManager into settings
+7. Create billing section using Stripe portal
+8. Usage limits display
+
+#### **Phase 3: Advanced Features**
+9. Security settings (2FA, sessions)
+10. Preferences (theme, notifications)
+11. Data export functionality
+
+#### **Phase 4: Polish & Enhancement**
+12. Avatar upload
+13. Advanced notification settings
+14. Connected accounts preparation
+
+### 🔧 Technical Implementation Notes
+
+#### **File Structure:**
+```
+src/pages/settings/
+├── SettingsLayout.tsx          # Main settings wrapper
+├── SettingsHome.tsx            # Settings landing page
+├── AccountSettings.tsx         # Account section
+├── ProfileSettings.tsx         # Profile section
+├── SubscriptionSettings.tsx    # Uses SubscriptionManager
+├── BillingSettings.tsx         # Stripe portal integration
+├── SecuritySettings.tsx        # Security features
+└── PreferencesSettings.tsx     # UI preferences
+```
+
+#### **Routing Structure:**
+- `/settings` - Settings home
+- `/settings/account` - Account settings
+- `/settings/profile` - Profile settings
+- `/settings/subscription` - Subscription management
+- `/settings/billing` - Billing portal
+- `/settings/security` - Security settings
+- `/settings/preferences` - UI preferences
+- `/about` - About page (moved from footer)
+
+#### **Integration with Existing Code:**
+- **User dropdown** - Update `MainNavigation.tsx` buttons to use proper routing
+- **Stripe components** - Import and use existing `SubscriptionManager`
+- **Auth context** - Use existing user/profile data from `useAuth()`
+- **Form handling** - Consistent with existing patterns in codebase
+
+### ✅ Success Criteria
+- All user dropdown buttons functional
+- About page accessible and informative
+- Subscription management integrated seamlessly
+- Stripe billing portal accessible
+- Settings navigation intuitive and comprehensive
+- Consistent UI/UX with existing app design
+- Mobile responsive design
+- Proper error handling and loading states
 
 ---
