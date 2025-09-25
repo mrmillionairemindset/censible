@@ -1,6 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Filter, Search, Download, CreditCard, MapPin, User, DollarSign, CheckCircle, XCircle, Clock, Camera, Edit3, Scan } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import {
+  getHouseholdMembers,
+  getTransactions,
+  addTransaction,
+  updateTransactionApproval,
+  type HouseholdMember,
+  type Transaction as DatabaseTransaction
+} from '../lib/auth-utils';
 
 interface Transaction {
   id: string;
@@ -35,6 +43,9 @@ const TransactionsPage: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [showAddTransaction, setShowAddTransaction] = useState(false);
   const [addTransactionMode, setAddTransactionMode] = useState<'manual' | 'scan'>('manual');
+  const [householdMembers, setHouseholdMembers] = useState<HouseholdMember[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
   const [newTransaction, setNewTransaction] = useState({
     member: '',
     amount: '',
@@ -56,42 +67,89 @@ const TransactionsPage: React.FC = () => {
     dateRange: 'all'
   });
 
-  // Handler to add new transaction
-  const handleAddTransaction = () => {
-    if (!newTransaction.member || !newTransaction.amount || !newTransaction.category || !newTransaction.description) return;
+  // Helper function to transform database transactions to UI format
+  const transformTransaction = (dbTx: DatabaseTransaction, members: HouseholdMember[]): Transaction => {
+    const member = members.find(m => m.user_id === dbTx.member_id);
+    return {
+      id: dbTx.id,
+      member: member?.display_name || 'Unknown',
+      memberId: dbTx.member_id || '',
+      memberType: member?.role === 'child' ? 'child' : member?.role === 'teen' ? 'teen' : 'adult',
+      amount: dbTx.amount,
+      category: dbTx.category,
+      description: dbTx.description || '',
+      merchant: dbTx.merchant,
+      location: dbTx.location,
+      date: dbTx.transaction_date,
+      time: new Date(dbTx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      expenseType: dbTx.expense_type,
+      approvalStatus: dbTx.approval_status,
+      approvedBy: dbTx.approved_by,
+      paymentMethod: dbTx.payment_method || '',
+      receiptUrl: dbTx.receipt_url
+    };
+  };
 
-    const transaction: Transaction = {
-      id: Date.now().toString(),
-      member: familyMembers.find(m => m.id === newTransaction.member)?.name || '',
-      memberId: newTransaction.member,
-      memberType: familyMembers.find(m => m.id === newTransaction.member)?.type as 'adult' | 'child' | 'teen' || 'adult',
-      amount: -parseFloat(newTransaction.amount),
-      category: newTransaction.category,
-      description: newTransaction.description,
-      merchant: newTransaction.merchant || undefined,
-      location: newTransaction.location || undefined,
-      date: new Date().toISOString().split('T')[0],
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      expenseType: newTransaction.expenseType as 'shared' | 'personal' | 'allowance',
-      approvalStatus: 'pending' as 'pending' | 'approved' | 'rejected',
-      paymentMethod: newTransaction.paymentMethod
+  // Load household members and transactions
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [members, dbTransactions] = await Promise.all([
+          getHouseholdMembers(),
+          getTransactions()
+        ]);
+
+        setHouseholdMembers(members);
+
+        // Transform database transactions to UI format
+        const transformedTransactions = dbTransactions.map(tx => transformTransaction(tx, members));
+        setTransactions(transformedTransactions);
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    // In real app, this would save to database
-    console.log('Adding transaction:', transaction);
+    loadData();
+  }, []);
 
-    // Reset form
-    setNewTransaction({
-      member: '',
-      amount: '',
-      category: '',
-      description: '',
-      merchant: '',
-      location: '',
-      expenseType: 'personal',
-      paymentMethod: ''
-    });
-    setShowAddTransaction(false);
+  // Handler to add new transaction
+  const handleAddTransaction = async () => {
+    if (!newTransaction.member || !newTransaction.amount || !newTransaction.category || !newTransaction.description) return;
+
+    try {
+      const newDbTransaction = await addTransaction({
+        member_id: newTransaction.member,
+        category: newTransaction.category,
+        amount: -parseFloat(newTransaction.amount), // Negative for expenses
+        description: newTransaction.description,
+        merchant: newTransaction.merchant || undefined,
+        location: newTransaction.location || undefined,
+        expense_type: newTransaction.expenseType as 'shared' | 'personal' | 'allowance',
+        payment_method: newTransaction.paymentMethod || undefined
+      });
+
+      // Transform to UI format and add to transactions
+      const uiTransaction = transformTransaction(newDbTransaction, householdMembers);
+      setTransactions(prev => [uiTransaction, ...prev]);
+
+      // Reset form
+      setNewTransaction({
+        member: '',
+        amount: '',
+        category: '',
+        description: '',
+        merchant: '',
+        location: '',
+        expenseType: 'personal',
+        paymentMethod: ''
+      });
+      setShowAddTransaction(false);
+    } catch (error) {
+      console.error('Error adding transaction:', error);
+      // Could show toast notification here
+    }
   };
 
   // Handler for receipt scanning with AI
@@ -142,112 +200,13 @@ const TransactionsPage: React.FC = () => {
     }
   };
 
-  // Mock data - will be replaced with real data from database
-  const familyMembers = [
-    { id: '1', name: 'Sarah', type: 'adult' },
-    { id: '2', name: 'Mike', type: 'adult' },
-    { id: '3', name: 'Emma', type: 'teen' },
-    { id: '4', name: 'Jake', type: 'child' }
-  ];
+  // Convert household members to format compatible with the transaction form
+  const familyMembers = householdMembers.map(member => ({
+    id: member.user_id,
+    name: member.display_name,
+    type: member.role === 'child' ? 'child' : member.role === 'teen' ? 'teen' : 'adult'
+  }));
 
-  const transactions: Transaction[] = [
-    {
-      id: '1',
-      member: 'Sarah',
-      memberId: '1',
-      memberType: 'adult',
-      amount: -89.24,
-      category: 'Groceries',
-      description: 'Weekly grocery shopping',
-      merchant: 'Whole Foods Market',
-      location: 'Austin, TX',
-      date: '2025-09-22',
-      time: '10:30 AM',
-      expenseType: 'shared',
-      approvalStatus: 'approved',
-      paymentMethod: 'Credit Card ****1234'
-    },
-    {
-      id: '2',
-      member: 'Mike',
-      memberId: '2',
-      memberType: 'adult',
-      amount: -45.67,
-      category: 'Transportation',
-      description: 'Gas for work commute',
-      merchant: 'Shell Station',
-      location: 'Austin, TX',
-      date: '2025-09-21',
-      time: '7:45 AM',
-      expenseType: 'personal',
-      approvalStatus: 'approved',
-      paymentMethod: 'Debit Card ****5678'
-    },
-    {
-      id: '3',
-      member: 'Emma',
-      memberId: '3',
-      memberType: 'teen',
-      amount: -12.00,
-      category: 'Entertainment',
-      description: 'Movie tickets with friends',
-      merchant: 'AMC Theater',
-      location: 'Austin, TX',
-      date: '2025-09-21',
-      time: '6:00 PM',
-      expenseType: 'allowance',
-      approvalStatus: 'approved',
-      approvedBy: 'Sarah',
-      paymentMethod: 'Allowance Balance'
-    },
-    {
-      id: '4',
-      member: 'Sarah',
-      memberId: '1',
-      memberType: 'adult',
-      amount: -67.89,
-      category: 'Dining',
-      description: 'Family dinner',
-      merchant: 'Olive Garden',
-      location: 'Austin, TX',
-      date: '2025-09-20',
-      time: '7:30 PM',
-      expenseType: 'shared',
-      approvalStatus: 'approved',
-      paymentMethod: 'Credit Card ****1234'
-    },
-    {
-      id: '5',
-      member: 'Jake',
-      memberId: '4',
-      memberType: 'child',
-      amount: -8.50,
-      category: 'Personal',
-      description: 'Pokemon card pack',
-      merchant: 'Target',
-      location: 'Austin, TX',
-      date: '2025-09-20',
-      time: '2:15 PM',
-      expenseType: 'allowance',
-      approvalStatus: 'pending',
-      paymentMethod: 'Allowance Request'
-    },
-    {
-      id: '6',
-      member: 'Mike',
-      memberId: '2',
-      memberType: 'adult',
-      amount: -156.78,
-      category: 'Utilities',
-      description: 'Electric bill payment',
-      merchant: 'Austin Energy',
-      date: '2025-09-19',
-      time: '9:00 AM',
-      expenseType: 'shared',
-      approvalStatus: 'approved',
-      paymentMethod: 'Auto-pay ****5678'
-    }
-  ];
 
   const categories = ['All', 'Groceries', 'Transportation', 'Entertainment', 'Dining', 'Personal', 'Utilities', 'Healthcare'];
 
@@ -305,13 +264,33 @@ const TransactionsPage: React.FC = () => {
     return matchesSearch && matchesMember && matchesCategory && matchesExpenseType && matchesApprovalStatus;
   });
 
-  const handleApproval = (transactionId: string, action: 'approve' | 'reject') => {
-    // In real app, this would update the database
-    console.log(`${action} transaction ${transactionId}`);
+  const handleApproval = async (transactionId: string, action: 'approve' | 'reject') => {
+    try {
+      const status = action === 'approve' ? 'approved' : 'rejected';
+      await updateTransactionApproval(transactionId, status);
+
+      // Update local state
+      setTransactions(prev => prev.map(tx =>
+        tx.id === transactionId
+          ? { ...tx, approvalStatus: status }
+          : tx
+      ));
+    } catch (error) {
+      console.error(`Error ${action}ing transaction:`, error);
+      // Could show toast notification here
+    }
   };
 
   const totalSpent = filteredTransactions.reduce((sum, t) => sum + Math.abs(t.amount), 0);
   const pendingCount = filteredTransactions.filter(t => t.approvalStatus === 'pending').length;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-mint-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
