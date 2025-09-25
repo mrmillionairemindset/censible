@@ -67,6 +67,60 @@ const TransactionsPage: React.FC = () => {
     dateRange: 'all'
   });
 
+  // Export functionality
+  const handleExport = () => {
+    try {
+      const csvContent = generateTransactionsCSV();
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+
+      if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `transactions-${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (err) {
+      console.error('Export failed:', err);
+    }
+  };
+
+  const generateTransactionsCSV = () => {
+    let csv = '';
+
+    // Header
+    csv += 'Transaction Export\n';
+    csv += `Generated on: ${new Date().toLocaleDateString()}\n`;
+    csv += `Total transactions: ${filteredTransactions.length}\n\n`;
+
+    // Column headers
+    csv += 'Date,Time,Member,Amount,Category,Description,Merchant,Location,Payment Method,Expense Type,Approval Status,Approved By\n';
+
+    // Transaction data
+    filteredTransactions.forEach(transaction => {
+      const row = [
+        transaction.date,
+        transaction.time,
+        `"${transaction.member}"`,
+        transaction.amount,
+        `"${transaction.category}"`,
+        `"${transaction.description}"`,
+        `"${transaction.merchant || ''}"`,
+        `"${transaction.location || ''}"`,
+        `"${transaction.paymentMethod}"`,
+        `"${transaction.expenseType}"`,
+        `"${transaction.approvalStatus}"`,
+        `"${transaction.approvedBy || ''}"`
+      ].join(',');
+      csv += row + '\n';
+    });
+
+    return csv;
+  };
+
   // Helper function to transform database transactions to UI format
   const transformTransaction = (dbTx: DatabaseTransaction, members: HouseholdMember[]): Transaction => {
     const member = members.find(m => m.user_id === dbTx.member_id);
@@ -303,7 +357,11 @@ const TransactionsPage: React.FC = () => {
           </p>
         </div>
         <div className="flex space-x-3">
-          <button className="flex items-center space-x-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200">
+          <button
+            onClick={handleExport}
+            className="flex items-center space-x-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200"
+            title="Export transactions as CSV"
+          >
             <Download className="w-4 h-4" />
             <span>Export</span>
           </button>
