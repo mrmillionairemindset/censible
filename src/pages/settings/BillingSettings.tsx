@@ -32,6 +32,7 @@ const BillingSettings: React.FC = () => {
   };
 
   const isPremium = hasAccess && (household?.subscription_status === 'active' || household?.subscription_status === 'trialing');
+  const hasStripeSubscription = isPremium && (household?.stripe_customer_id || household?.stripe_subscription_id);
   const plan = SUBSCRIPTION_PLANS.premium_household;
 
   return (
@@ -136,7 +137,7 @@ const BillingSettings: React.FC = () => {
             )}
 
             {/* Action Buttons */}
-            {isPremium && (
+            {hasStripeSubscription && (
               <div className="flex gap-3">
                 <button
                   onClick={handleManageSubscription}
@@ -164,7 +165,7 @@ const BillingSettings: React.FC = () => {
         </div>
 
         {/* Billing Management */}
-        {isPremium && (
+        {hasStripeSubscription && (
           <div className="bg-white rounded-lg shadow-sm p-8 mb-8">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">Billing Management</h2>
 

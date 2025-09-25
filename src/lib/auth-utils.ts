@@ -19,6 +19,8 @@ export interface HouseholdInfo {
   role: string | null;
   subscription_status: string | null;
   subscription_tier?: string | null;
+  stripe_customer_id?: string | null;
+  stripe_subscription_id?: string | null;
 }
 
 /**

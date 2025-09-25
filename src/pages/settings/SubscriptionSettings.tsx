@@ -108,6 +108,7 @@ const SubscriptionSettings: React.FC = () => {
   };
 
   const isPremium = hasAccess && (household?.subscription_status === 'active' || household?.subscription_status === 'trialing');
+  const hasStripeSubscription = isPremium && (household?.stripe_customer_id || household?.stripe_subscription_id);
   const plan = SUBSCRIPTION_PLANS.premium_household;
 
   return (
@@ -188,7 +189,7 @@ const SubscriptionSettings: React.FC = () => {
 
             {/* Action Buttons */}
             <div className="flex gap-3">
-              {isPremium ? (
+              {hasStripeSubscription ? (
                 <button
                   onClick={handleManageSubscription}
                   disabled={loading}

@@ -49,11 +49,12 @@ export async function createHouseholdCheckoutSession(successUrl: string, cancelU
     throw new Error('User already has an active household subscription');
   }
 
-  const response = await fetch('/api/stripe/create-checkout-session', {
+  const response = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/create-checkout-session`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+      'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+      'apikey': process.env.REACT_APP_SUPABASE_ANON_KEY!
     },
     body: JSON.stringify({
       priceId: STRIPE_PRICE_HOUSEHOLD,
@@ -87,11 +88,12 @@ export async function createCustomerPortalSession(returnUrl: string) {
     throw new Error('User does not have a household subscription');
   }
 
-  const response = await fetch('/api/stripe/create-portal-session', {
+  const response = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/create-portal-session`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+      'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+      'apikey': process.env.REACT_APP_SUPABASE_ANON_KEY!
     },
     body: JSON.stringify({
       userId: user.id,
