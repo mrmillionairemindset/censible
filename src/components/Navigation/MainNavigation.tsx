@@ -30,6 +30,7 @@ import BillsPage from '../../pages/BillsPage';
 import ReportsPage from '../../pages/ReportsPage';
 import Privacy from '../../pages/Privacy';
 import Terms from '../../pages/Terms';
+import CentsibleLogo from '../../assets/centsible-logo.png';
 
 const MainNavigation: React.FC = () => {
   const { user, profile, household, signOut } = useAuth();
@@ -446,8 +447,13 @@ const MainNavigation: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             {/* Copyright */}
-            <div className="text-sm text-gray-600">
-              © {new Date().getFullYear()} Centsible. All rights reserved.
+            <div className="flex items-center space-x-2 text-sm text-gray-600">
+              <img
+                src={CentsibleLogo}
+                alt="Centsible Logo"
+                className="h-6 w-auto"
+              />
+              <span>© {new Date().getFullYear()} Centsible™. All rights reserved.</span>
             </div>
 
             {/* Links */}
