@@ -1008,6 +1008,7 @@ export async function createSavingsGoal(goal: Omit<SavingsGoal, 'id' | 'househol
     .from('savings_goals')
     .insert({
       ...goal,
+      user_id: user.id,
       household_id: householdInfo.household_id,
       created_by: user.id
     })
