@@ -32,6 +32,10 @@ import Privacy from '../../pages/Privacy';
 import Terms from '../../pages/Terms';
 import Contact from '../../pages/Contact';
 import HelpCenter from '../../pages/HelpCenter';
+import About from '../../pages/About';
+import SettingsHome from '../../pages/settings/SettingsHome';
+import ProfileSettings from '../../pages/settings/ProfileSettings';
+import AccountSettings from '../../pages/settings/AccountSettings';
 import CentsibleLogo from '../../assets/centsible-logo.png';
 
 const MainNavigation: React.FC = () => {
@@ -313,18 +317,38 @@ const MainNavigation: React.FC = () => {
                       </div>
 
                       {/* Menu Items */}
-                      <button className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                      <NavLink
+                        to="/settings/profile"
+                        className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        onClick={() => setShowUserDropdown(false)}
+                      >
                         <User className="w-4 h-4" />
                         <span>Profile</span>
-                      </button>
-                      <button className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                      </NavLink>
+                      <NavLink
+                        to="/settings"
+                        className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        onClick={() => setShowUserDropdown(false)}
+                      >
                         <Settings className="w-4 h-4" />
                         <span>Settings</span>
-                      </button>
-                      <button className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                      </NavLink>
+                      <NavLink
+                        to="/help"
+                        className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        onClick={() => setShowUserDropdown(false)}
+                      >
                         <HelpCircle className="w-4 h-4" />
                         <span>Help & Support</span>
-                      </button>
+                      </NavLink>
+                      <NavLink
+                        to="/about"
+                        className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        onClick={() => setShowUserDropdown(false)}
+                      >
+                        <HelpCircle className="w-4 h-4" />
+                        <span>About Centsible</span>
+                      </NavLink>
 
                       <div className="border-t border-gray-100 mt-1">
                         <button
@@ -446,6 +470,14 @@ const MainNavigation: React.FC = () => {
 
           {/* Help Center route */}
           <Route path="/help" element={<HelpCenter />} />
+
+          {/* About route */}
+          <Route path="/about" element={<About />} />
+
+          {/* Settings routes */}
+          <Route path="/settings" element={<SettingsHome />} />
+          <Route path="/settings/profile" element={<ProfileSettings />} />
+          <Route path="/settings/account" element={<AccountSettings />} />
 
           {/* Catch all route - redirect to dashboard */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

@@ -8,6 +8,7 @@ import {
   signInWithUsername,
   getCurrentUserProfile,
   getUserHousehold,
+  updateUserProfile,
   UserProfile,
   HouseholdInfo
 } from '../lib/auth-utils';
@@ -25,6 +26,7 @@ interface AuthContextType {
   clearError: () => void;
   refreshProfile: () => Promise<void>;
   refreshHousehold: () => Promise<void>;
+  updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -65,6 +67,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setHousehold(householdInfo);
     } catch (err) {
       console.error('Error refreshing household:', err);
+    }
+  };
+
+  // Update user profile
+  const updateProfile = async (updates: Partial<UserProfile>) => {
+    try {
+      await updateUserProfile(updates);
+      // Refresh profile to get updated data
+      await refreshProfile();
+    } catch (err) {
+      console.error('Error updating profile:', err);
+      throw err;
     }
   };
 
@@ -336,6 +350,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     clearError,
     refreshProfile,
     refreshHousehold,
+    updateProfile,
   };
 
   return (

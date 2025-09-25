@@ -7,6 +7,10 @@ export interface UserProfile {
   email: string;
   avatar_url: string | null;
   created_at: string;
+  bio?: string | null;
+  timezone?: string | null;
+  language?: string | null;
+  phone?: string | null;
 }
 
 export interface HouseholdInfo {
@@ -14,6 +18,7 @@ export interface HouseholdInfo {
   household_name: string | null;
   role: string | null;
   subscription_status: string | null;
+  subscription_tier?: string | null;
 }
 
 /**
