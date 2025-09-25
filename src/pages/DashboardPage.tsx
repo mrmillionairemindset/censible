@@ -246,7 +246,7 @@ const DashboardPage: React.FC = () => {
           Welcome back, {profile?.display_name || profile?.username}!
         </h1>
         <p className="text-gray-600">
-          Here's your {household?.household_name || 'family'} financial overview for {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+          Here's your financial overview for {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
         </p>
       </div>
 

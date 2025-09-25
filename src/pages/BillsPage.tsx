@@ -658,7 +658,7 @@ const BillsPage: React.FC = () => {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Bills & Recurring</h1>
         <p className="text-gray-600">
-          Manage your {household?.household_name || 'family'} bills, subscriptions, and recurring expenses
+          Manage bills, subscriptions, and recurring expenses
         </p>
       </div>
 

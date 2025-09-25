@@ -508,7 +508,7 @@ const BudgetPage: React.FC = () => {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Budget Management</h1>
         <p className="text-gray-600">
-          Manage your {household?.household_name || 'family'} budget
+          Manage income, categories, and spending allocations
         </p>
       </div>
 

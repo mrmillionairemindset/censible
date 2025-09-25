@@ -559,7 +559,7 @@ const SavingsPage: React.FC = () => {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Savings Goals</h1>
         <p className="text-gray-600">
-          Track your {household?.household_name || 'family'}'s savings goals and financial milestones
+          Track savings goals and financial milestones
         </p>
       </div>
 
