@@ -9,12 +9,6 @@ import CategorySelect from '../components/UI/CategorySelect';
 // IncomeSource is already defined in types/index.ts
 // BudgetCategory is already defined in types/index.ts
 
-interface LocalMember {
-  id: string;
-  name: string;
-  role: 'admin' | 'member';
-  email: string;
-}
 
 const BudgetPage: React.FC = () => {
   const { household } = useAuth();

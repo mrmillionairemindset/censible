@@ -15,6 +15,8 @@
 - **Income is managed in BudgetPage.tsx, NOT IncomeTracker.tsx** - User confirmed this
 - **Free tier gets 4 members (1 owner + 3 read-only), not solo** - Updated in migration
 - **Per-member tracking is PREMIUM ONLY** - Individual spending/goal tracking
+- **Supabase relationship queries fail without foreign keys** - Use separate queries to avoid PGRST200 errors
+- **Missing table columns cause 42703 errors** - Add missing columns with ALTER TABLE statements
 
 ## 📝 ADD NEW LEARNINGS HERE
 **When you discover new bugs, database issues, or Centsible quirks, ADD THEM ABOVE in Critical Rules section!**

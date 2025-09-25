@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Users, UserPlus, Settings, Shield, DollarSign, Edit3, Trash2, Crown, Mail, UserCheck, UserX, AlertTriangle } from 'lucide-react';
+import { Users, Settings, Shield, DollarSign, Edit3, Trash2, Crown, Mail, UserCheck, UserX, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { getHouseholdMembers, getHouseholdInvitations, removeHouseholdMember, updateHouseholdMember, HouseholdMember } from '../lib/auth-utils';
+import { getHouseholdMembers, getHouseholdInvitations, removeHouseholdMember, updateHouseholdMember, createDefaultHouseholdForUser, HouseholdMember } from '../lib/auth-utils';
 import HouseholdManager from '../components/Household/HouseholdManager';
 import JoinHousehold from '../components/Household/JoinHousehold';
 import toast from 'react-hot-toast';
@@ -21,10 +21,9 @@ interface PendingInvitation {
 const HouseholdPage: React.FC = () => {
   const { household, profile } = useAuth();
   const [activeTab, setActiveTab] = useState<'members' | 'invitations' | 'settings'>('members');
-  const [showInviteModal, setShowInviteModal] = useState(false);
   const [showEditMember, setShowEditMember] = useState<string | null>(null);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteUsername, setInviteUsername] = useState('');
+  const [householdName, setHouseholdName] = useState('');
+  const [currency, setCurrency] = useState('USD');
 
   // Real data state
   const [householdMembers, setHouseholdMembers] = useState<HouseholdMember[]>([]);
@@ -34,16 +33,41 @@ const HouseholdPage: React.FC = () => {
   // Load real data from database
   useEffect(() => {
     async function loadHouseholdData() {
+      console.log('Loading household data, household:', household);
+
       if (!household?.household_id) {
-        setLoading(false);
-        return;
+        // Try to create a default household for users who don't have one
+        try {
+          console.log('No household found, creating default household');
+          await createDefaultHouseholdForUser();
+          // After creating household, the AuthContext should refresh automatically
+          // For now, we'll show loading while it updates
+          setTimeout(() => {
+            window.location.reload(); // Force refresh to get updated household data
+          }, 1000);
+          return;
+        } catch (error) {
+          console.error('Failed to create default household:', error);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Even if user has household, ensure they are in household_members table
+      try {
+        console.log('Ensuring user is household member');
+        await createDefaultHouseholdForUser();
+      } catch (error) {
+        console.warn('Failed to ensure household membership:', error);
       }
 
       try {
         setLoading(true);
 
         // Load household members
+        console.log('Loading household members...');
         const members = await getHouseholdMembers();
+        console.log('Loaded household members:', members);
         setHouseholdMembers(members);
 
         // Load pending invitations (if user is owner/admin)
@@ -73,6 +97,14 @@ const HouseholdPage: React.FC = () => {
     }
 
     loadHouseholdData();
+  }, [household]);
+
+  // Update form state when household data changes
+  useEffect(() => {
+    if (household) {
+      setHouseholdName(household.household_name || '');
+      setCurrency('USD'); // Default currency, can be extended later
+    }
   }, [household]);
 
   // Mock household members removed - now using live data from useEffect
@@ -107,18 +139,6 @@ const HouseholdPage: React.FC = () => {
     }
   };
 
-  const handleInviteMember = async () => {
-    try {
-      const { inviteToHousehold } = await import('../lib/auth-utils');
-      await inviteToHousehold(inviteEmail, inviteUsername);
-      alert('Invitation sent successfully!');
-      setShowInviteModal(false);
-      setInviteEmail('');
-      setInviteUsername('');
-    } catch (error) {
-      alert(`Failed to send invitation: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  };
 
   const handleRemoveMember = async (memberId: string) => {
     if (!window.confirm('Are you sure you want to remove this member from the household?')) {
@@ -160,15 +180,6 @@ const HouseholdPage: React.FC = () => {
           <h3 className="text-lg font-semibold text-gray-900">Family Members</h3>
           <p className="text-gray-600">Manage who has access to your family budget</p>
         </div>
-        {isOwner && (
-          <button
-            onClick={() => setShowInviteModal(true)}
-            className="flex items-center space-x-2 bg-mint-600 text-white px-4 py-2 rounded-lg hover:bg-mint-700"
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>Invite Member</span>
-          </button>
-        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -297,14 +308,21 @@ const HouseholdPage: React.FC = () => {
             <label className="block text-sm font-medium text-gray-700 mb-2">Household Name</label>
             <input
               type="text"
-              value={household?.household_name || ''}
+              value={householdName}
+              onChange={(e) => setHouseholdName(e.target.value)}
               className="w-full border border-gray-300 rounded-md px-3 py-2"
               disabled={!isOwner}
+              readOnly={!isOwner}
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
-            <select className="w-full border border-gray-300 rounded-md px-3 py-2" disabled={!isOwner}>
+            <select
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              disabled={!isOwner}
+            >
               <option value="USD">USD ($)</option>
               <option value="EUR">EUR (€)</option>
               <option value="GBP">GBP (£)</option>
@@ -410,51 +428,6 @@ const HouseholdPage: React.FC = () => {
       {activeTab === 'invitations' && renderInvitationsTab()}
       {activeTab === 'settings' && renderSettingsTab()}
 
-      {/* Invite Modal */}
-      {showInviteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Invite Family Member</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
-                <input
-                  type="email"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
-                  placeholder="family.member@email.com"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Suggested Username (Optional)</label>
-                <input
-                  type="text"
-                  value={inviteUsername}
-                  onChange={(e) => setInviteUsername(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
-                  placeholder="username"
-                />
-              </div>
-            </div>
-            <div className="flex space-x-3 mt-6">
-              <button
-                onClick={() => setShowInviteModal(false)}
-                className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleInviteMember}
-                className="flex-1 bg-mint-600 text-white py-2 px-4 rounded-lg hover:bg-mint-700"
-                disabled={!inviteEmail}
-              >
-                Send Invitation
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
