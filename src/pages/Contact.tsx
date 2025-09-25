@@ -256,7 +256,10 @@ const Contact: React.FC = () => {
               <p className="text-gray-600 mb-3">
                 Check our comprehensive help documentation for common questions and step-by-step guides.
               </p>
-              <button className="text-[#27AE60] hover:text-[#219A52] font-medium text-sm">
+              <button
+                onClick={() => window.location.href = '/help'}
+                className="text-[#27AE60] hover:text-[#219A52] font-medium text-sm"
+              >
                 Visit Help Center →
               </button>
             </div>

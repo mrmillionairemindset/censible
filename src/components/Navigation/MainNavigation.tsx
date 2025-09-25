@@ -31,6 +31,7 @@ import ReportsPage from '../../pages/ReportsPage';
 import Privacy from '../../pages/Privacy';
 import Terms from '../../pages/Terms';
 import Contact from '../../pages/Contact';
+import HelpCenter from '../../pages/HelpCenter';
 import CentsibleLogo from '../../assets/centsible-logo.png';
 
 const MainNavigation: React.FC = () => {
@@ -440,6 +441,9 @@ const MainNavigation: React.FC = () => {
 
           {/* Contact route */}
           <Route path="/contact" element={<Contact />} />
+
+          {/* Help Center route */}
+          <Route path="/help" element={<HelpCenter />} />
 
           {/* Catch all route - redirect to dashboard */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
