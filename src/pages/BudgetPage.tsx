@@ -450,9 +450,13 @@ const BudgetPage: React.FC = () => {
                   ></div>
                   <div className="flex items-center space-x-2">
                     <span className="font-medium text-gray-900">{CategoryLabels[category.name]}</span>
-                    {isCoreCategory && (
+                    {isCoreCategory ? (
                       <span className="px-2 py-1 text-xs font-medium bg-mint-100 text-mint-700 rounded-full">
                         Core
+                      </span>
+                    ) : (
+                      <span className="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-700 rounded-full">
+                        Custom
                       </span>
                     )}
                   </div>
