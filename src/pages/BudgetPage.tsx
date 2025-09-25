@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Wallet, PieChart, Users, Tag, UserPlus, Trash2, Edit3 } from 'lucide-react';
+import { Plus, Wallet, PieChart, Users, Tag, Trash2, Edit3 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useBudget } from '../contexts/BudgetContextSupabase';
 import { CategoryType, CategoryColors, CategoryLabels, IncomeSource, BudgetCategory, CategoryIcons, CoreCategories } from '../types/index';
@@ -21,7 +21,7 @@ const BudgetPage: React.FC = () => {
     updateCategoryBudgets,
     deleteCategory
   } = useBudget();
-  const [activeTab, setActiveTab] = useState<'overview' | 'income' | 'categories' | 'members'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'income' | 'categories'>('overview');
   const householdId = household?.household_id || 'default';
 
   // Get categories from Supabase context instead of localStorage
@@ -47,15 +47,6 @@ const BudgetPage: React.FC = () => {
     budgetAmount: ''
   });
 
-  // Local state for members (keeping this local for now as it's not in Supabase context yet)
-  const [members, setMembers] = useState<LocalMember[]>([]);
-  const [showAddMember, setShowAddMember] = useState(false);
-  const [editingMember, setEditingMember] = useState<string | null>(null);
-  const [newMember, setNewMember] = useState({
-    name: '',
-    email: '',
-    role: 'member' as 'admin' | 'member'
-  });
 
   // Handler to add new income source - using Supabase context
   const handleAddIncome = async () => {
@@ -285,52 +276,6 @@ const BudgetPage: React.FC = () => {
     }
   };
 
-  // Handler to add new member
-  const handleAddMember = () => {
-    if (!newMember.name || !newMember.email) return;
-
-    if (editingMember) {
-      // Update existing member
-      setMembers(prev => prev.map(member =>
-        member.id === editingMember
-          ? { ...member, name: newMember.name, email: newMember.email, role: newMember.role }
-          : member
-      ));
-      setEditingMember(null);
-    } else {
-      // Add new member
-      const member: LocalMember = {
-        id: Date.now().toString(),
-        name: newMember.name,
-        email: newMember.email,
-        role: newMember.role
-      };
-      setMembers(prev => [...prev, member]);
-    }
-
-    setNewMember({ name: '', email: '', role: 'member' });
-    setShowAddMember(false);
-  };
-
-  // Handler to edit member
-  const handleEditMember = (memberId: string) => {
-    const member = members.find(m => m.id === memberId);
-    if (member) {
-      setNewMember({
-        name: member.name,
-        email: member.email,
-        role: member.role
-      });
-      setEditingMember(memberId);
-      setShowAddMember(true);
-    }
-  };
-
-  // Handler to delete member
-  const handleDeleteMember = (id: string) => {
-    if (!window.confirm('Are you sure you want to remove this member?')) return;
-    setMembers(prev => prev.filter(member => member.id !== id));
-  };
 
   const totalBudget = budget.categories.reduce((total, category) => total + category.allocated, 0);
 
@@ -459,10 +404,6 @@ const BudgetPage: React.FC = () => {
             <p className="text-sm text-gray-600">Categories</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-gray-900">{members.length}</p>
-            <p className="text-sm text-gray-600">Members</p>
-          </div>
-          <div className="text-center">
             <p className="text-2xl font-bold text-gray-900">{household?.household_name ? '1' : '0'}</p>
             <p className="text-sm text-gray-600">Households</p>
           </div>
@@ -561,69 +502,11 @@ const BudgetPage: React.FC = () => {
     </div>
   );
 
-  const renderMembersTab = () => (
-    <div className="space-y-6">
-      {/* Members Summary */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">Family Members ({members.length})</h3>
-            <p className="text-sm text-gray-600">Manage household access and permissions</p>
-          </div>
-          <button
-            onClick={() => setShowAddMember(true)}
-            className="flex items-center space-x-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>Add Member</span>
-          </button>
-        </div>
-
-        {/* Members List */}
-        <div className="space-y-2">
-          {members.map((member) => (
-            <div key={member.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-              <div>
-                <span className="font-medium text-gray-900">{member.name}</span>
-                <p className="text-sm text-gray-600">{member.email}</p>
-              </div>
-              <div className="flex items-center space-x-3">
-                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                  member.role === 'admin'
-                    ? 'bg-purple-100 text-purple-800'
-                    : 'bg-gray-100 text-gray-800'
-                }`}>
-                  {member.role}
-                </span>
-                <button
-                  onClick={() => handleEditMember(member.id)}
-                  className="text-gray-400 hover:text-blue-600 transition-colors"
-                  title="Edit member"
-                >
-                  <Edit3 className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleDeleteMember(member.id)}
-                  className="text-gray-400 hover:text-red-600 transition-colors"
-                  title="Delete member"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          ))}
-          {members.length === 0 && (
-            <p className="text-gray-500 text-center py-4">No members added yet. Click "Add Member" to get started!</p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Family Budget</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Budget Management</h1>
         <p className="text-gray-600">
           Manage your {household?.household_name || 'family'} budget
         </p>
@@ -635,8 +518,7 @@ const BudgetPage: React.FC = () => {
           {[
             { id: 'overview', name: 'Overview', icon: PieChart },
             { id: 'income', name: 'Income', icon: Wallet },
-            { id: 'categories', name: 'Categories', icon: Tag },
-            { id: 'members', name: 'Members', icon: Users }
+            { id: 'categories', name: 'Categories', icon: Tag }
           ].map((tab) => {
             const Icon = tab.icon;
             return (
@@ -661,7 +543,6 @@ const BudgetPage: React.FC = () => {
       {activeTab === 'overview' && renderOverviewTab()}
       {activeTab === 'income' && renderIncomeTab()}
       {activeTab === 'categories' && renderCategoriesTab()}
-      {activeTab === 'members' && renderMembersTab()}
 
       {/* Add Income Modal */}
       {showAddIncome && (
@@ -811,66 +692,6 @@ const BudgetPage: React.FC = () => {
         </div>
       )}
 
-      {/* Add Member Modal */}
-      {showAddMember && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">{editingMember ? 'Edit Member' : 'Add New Member'}</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                <input
-                  type="text"
-                  value={newMember.name}
-                  onChange={(e) => setNewMember(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="e.g., John Smith"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                <input
-                  type="email"
-                  value={newMember.email}
-                  onChange={(e) => setNewMember(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="john@example.com"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-                <select
-                  value={newMember.role}
-                  onChange={(e) => setNewMember(prev => ({ ...prev, role: e.target.value as 'admin' | 'member' }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  <option value="member">Member</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-            </div>
-            <div className="flex justify-end space-x-3 mt-6">
-              <button
-                onClick={() => {
-                  setShowAddMember(false);
-                  setEditingMember(null);
-                  setNewMember({ name: '', email: '', role: 'member' });
-                }}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddMember}
-                disabled={!newMember.name || !newMember.email}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {editingMember ? 'Update Member' : 'Add Member'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -64,9 +64,141 @@ export async function signUpWithUsername(
     if (updateError) {
       console.warn('Failed to update username, but signup succeeded:', updateError);
     }
+
+    // Create a default household for the new user
+    try {
+      const householdName = `${displayName || username}'s Household`;
+
+      // Create household
+      const { data: household, error: householdError } = await supabase
+        .from('households')
+        .insert({
+          household_name: householdName,
+          created_by: data.user.id,
+          subscription_status: 'active', // Start with active status for individual users
+          plan_type: 'individual'
+        })
+        .select()
+        .single();
+
+      if (householdError) {
+        console.warn('Failed to create household during signup:', householdError);
+      } else {
+        // Add user as owner to the household_members table
+        const { error: memberError } = await supabase
+          .from('household_members')
+          .insert({
+            household_id: household.id,
+            user_id: data.user.id,
+            role: 'owner',
+            member_type: 'adult',
+            display_name: displayName || username,
+            joined_at: new Date().toISOString(),
+            can_edit_budget: true,
+            can_add_transactions: true,
+            requires_approval: false
+          });
+
+        if (memberError) {
+          console.warn('Failed to add user to household during signup:', memberError);
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to set up household during signup:', error);
+    }
   }
 
   return data;
+}
+
+
+/**
+ * Create a household for existing users who don't have one
+ */
+export async function createDefaultHouseholdForUser(): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  // Check if user already has a household
+  const householdInfo = await getUserHousehold();
+  if (householdInfo.household_id) {
+    // User has household but may not be in household_members table - check and add if needed
+    const { data: existingMember } = await supabase
+      .from('household_members')
+      .select('id')
+      .eq('household_id', householdInfo.household_id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (!existingMember) {
+      // Get user profile for display name
+      const profile = await getCurrentUserProfile();
+      const displayName = profile?.display_name || profile?.username || 'User';
+
+      // Add user as owner to the household_members table
+      const { error: memberError } = await supabase
+        .from('household_members')
+        .insert({
+          household_id: householdInfo.household_id,
+          user_id: user.id,
+          role: 'owner',
+          member_type: 'adult',
+          display_name: displayName,
+          joined_at: new Date().toISOString(),
+          can_edit_budget: true,
+          can_add_transactions: true,
+          requires_approval: false
+        });
+
+      if (memberError) {
+        console.error('Failed to add user to household_members:', memberError);
+        throw memberError;
+      }
+    }
+    return;
+  }
+
+  // Get user profile for display name
+  const profile = await getCurrentUserProfile();
+  const displayName = profile?.display_name || profile?.username || 'User';
+
+  const householdName = `${displayName}'s Household`;
+
+  try {
+    // Create household
+    const { data: household, error: householdError } = await supabase
+      .from('households')
+      .insert({
+        household_name: householdName,
+        created_by: user.id,
+        subscription_status: 'active',
+        plan_type: 'individual'
+      })
+      .select()
+      .single();
+
+    if (householdError) throw householdError;
+
+    // Add user as owner to the household_members table
+    const { error: memberError } = await supabase
+      .from('household_members')
+      .insert({
+        household_id: household.id,
+        user_id: user.id,
+        role: 'owner',
+        member_type: 'adult',
+        display_name: displayName,
+        joined_at: new Date().toISOString(),
+        can_edit_budget: true,
+        can_add_transactions: true,
+        requires_approval: false
+      });
+
+    if (memberError) throw memberError;
+  } catch (error) {
+    console.error('Failed to create default household:', error);
+    throw error;
+  }
 }
 
 /**
@@ -441,12 +573,7 @@ export async function getHouseholdMembers(): Promise<HouseholdMember[]> {
       can_edit_budget,
       can_add_transactions,
       requires_approval,
-      display_name,
-      profiles (
-        username,
-        email,
-        avatar_url
-      )
+      display_name
     `)
     .eq('household_id', householdInfo.household_id)
     .order('role', { ascending: false }) // owners first, then members
@@ -454,14 +581,32 @@ export async function getHouseholdMembers(): Promise<HouseholdMember[]> {
 
   if (error) throw error;
 
-  return data?.map((member: any) => {
-    // profiles is a single object, not an array
-    const profile = member.profiles;
+  // Get profile data separately to avoid relationship issues
+  const memberData = data || [];
+  const userIds = memberData.map(member => member.user_id);
+
+  let profiles: any[] = [];
+  if (userIds.length > 0) {
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, username, email, avatar_url, display_name')
+      .in('id', userIds);
+
+    if (profileError) {
+      console.warn('Could not load profiles:', profileError);
+    } else {
+      profiles = profileData || [];
+    }
+  }
+
+  return memberData.map((member: any) => {
+    // Find the profile for this member from the separate profiles array
+    const profile = profiles.find(p => p.id === member.user_id);
     return {
       id: member.id,
       user_id: member.user_id,
       username: profile?.username || 'unknown',
-      display_name: member.display_name || profile?.username || 'Unknown User',
+      display_name: member.display_name || profile?.display_name || profile?.username || 'Unknown User',
       email: profile?.email || '',
       role: member.role,
       member_type: member.member_type || 'adult',
@@ -474,7 +619,7 @@ export async function getHouseholdMembers(): Promise<HouseholdMember[]> {
       requires_approval: member.requires_approval || false,
       avatar_url: profile?.avatar_url
     };
-  }) || [];
+  });
 }
 
 /**
@@ -557,7 +702,7 @@ export async function updateHouseholdMember(memberId: string, updates: Partial<H
 export interface Bill {
   id: string;
   household_id: string;
-  created_by: string;
+  user_id: string;
   name: string;
   description?: string;
   amount: number;
@@ -663,7 +808,7 @@ export async function getRecurringExpenses(): Promise<Bill[]> {
 /**
  * Create a new bill
  */
-export async function createBill(bill: Omit<Bill, 'id' | 'household_id' | 'created_by' | 'created_at' | 'updated_at'>) {
+export async function createBill(bill: Omit<Bill, 'id' | 'household_id' | 'user_id' | 'created_at' | 'updated_at'>) {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) throw new Error('Not authenticated');
@@ -673,12 +818,23 @@ export async function createBill(bill: Omit<Bill, 'id' | 'household_id' | 'creat
     throw new Error('User is not part of a household');
   }
 
+  // Filter out empty string UUID fields to avoid 22P02 errors
+  const cleanBill = { ...bill };
+  if (cleanBill.assigned_to === '') {
+    delete cleanBill.assigned_to;
+  }
+
+  // Calculate next_due if not provided (required field)
+  if (!cleanBill.next_due && cleanBill.due_date) {
+    cleanBill.next_due = cleanBill.due_date; // For first occurrence, next_due equals due_date
+  }
+
   const { data, error } = await supabase
     .from('bills')
     .insert({
-      ...bill,
+      ...cleanBill,
       household_id: householdInfo.household_id,
-      created_by: user.id
+      user_id: user.id
     })
     .select()
     .single();
@@ -986,29 +1142,34 @@ export async function getSpendingByMember(period: string = 'month'): Promise<Spe
       startDate = new Date(now.getFullYear(), now.getMonth(), 1);
   }
 
-  const { data, error } = await supabase
+  // Get transactions first
+  const { data: transactionsData, error } = await supabase
     .from('transactions')
-    .select(`
-      amount,
-      created_by,
-      profiles:created_by (
-        username,
-        display_name
-      )
-    `)
+    .select('amount, created_by')
     .eq('household_id', householdInfo.household_id)
     .gte('created_at', startDate.toISOString())
     .lte('created_at', now.toISOString());
 
   if (error) throw error;
 
+  // Get profiles for the members who created these transactions
+  const memberIds = [...new Set(transactionsData?.map(t => t.created_by).filter(Boolean))];
+  const { data: profilesData } = await supabase
+    .from('profiles')
+    .select('id, username, display_name')
+    .in('id', memberIds);
+
+  // Create a map of member profiles
+  const profilesMap = new Map(profilesData?.map(p => [p.id, p]) || []);
+
   // Group by member and calculate totals
   const memberTotals: { [key: string]: { amount: number; transactions: number; name: string } } = {};
   let totalAmount = 0;
 
-  data?.forEach((transaction: any) => {
+  transactionsData?.forEach((transaction: any) => {
     const memberId = transaction.created_by;
-    const memberName = transaction.profiles?.display_name || transaction.profiles?.username || 'Unknown';
+    const profile = profilesMap.get(memberId);
+    const memberName = profile?.display_name || profile?.username || 'Unknown';
     const amount = Math.abs(transaction.amount); // Use absolute value for spending
 
     if (!memberTotals[memberId]) {
@@ -1079,7 +1240,7 @@ export async function getCategoryBreakdown(period: string = 'month'): Promise<Ca
   // Get budget data for comparison
   const { data: budgets, error: budgetError } = await supabase
     .from('budget_categories')
-    .select('category, budgeted_amount')
+    .select('category, allocated')
     .eq('household_id', householdInfo.household_id);
 
   if (budgetError) throw budgetError;
@@ -1099,7 +1260,7 @@ export async function getCategoryBreakdown(period: string = 'month'): Promise<Ca
   // Create budget lookup
   const budgetLookup: { [key: string]: number } = {};
   budgets?.forEach((budget: any) => {
-    budgetLookup[budget.category] = budget.budgeted_amount || 0;
+    budgetLookup[budget.category] = budget.allocated || 0;
   });
 
   // Convert to array with budget comparison
@@ -1313,20 +1474,49 @@ export async function getTransactions(): Promise<Transaction[]> {
     return [];
   }
 
-  const { data, error } = await supabase
+  // Get transactions first without nested relationships to avoid PGRST200 error
+  const { data: transactions, error: transactionsError } = await supabase
     .from('transactions')
-    .select(`
-      *,
-      created_by_profile:profiles!created_by(display_name, username),
-      member_profile:profiles!member_id(display_name, username)
-    `)
+    .select('*')
     .eq('household_id', householdInfo.household_id)
     .order('transaction_date', { ascending: false })
     .order('created_at', { ascending: false });
 
-  if (error) throw error;
+  if (transactionsError) throw transactionsError;
 
-  return data || [];
+  if (!transactions || transactions.length === 0) {
+    return [];
+  }
+
+  // Get unique user IDs from transactions
+  const userIds = Array.from(new Set([
+    ...transactions.map(t => t.created_by).filter(Boolean),
+    ...transactions.map(t => t.member_id).filter(Boolean)
+  ]));
+
+  // Get profile information for all referenced users
+  const { data: profiles, error: profilesError } = await supabase
+    .from('profiles')
+    .select('id, display_name, username')
+    .in('id', userIds);
+
+  if (profilesError) {
+    console.warn('Could not fetch profile information:', profilesError);
+    // Return transactions without profile info if profiles can't be fetched
+    return transactions;
+  }
+
+  // Create a profiles lookup map
+  const profilesMap = new Map(profiles?.map(p => [p.id, p]) || []);
+
+  // Enhance transactions with profile information
+  const enhancedTransactions = transactions.map(transaction => ({
+    ...transaction,
+    created_by_profile: transaction.created_by ? profilesMap.get(transaction.created_by) : null,
+    member_profile: transaction.member_id ? profilesMap.get(transaction.member_id) : null
+  }));
+
+  return enhancedTransactions;
 }
 
 /**
@@ -1360,7 +1550,8 @@ export async function addTransaction(transaction: {
     .lte('start_date', new Date().toISOString().split('T')[0])
     .single();
 
-  const newTransaction = {
+  // Create base transaction object
+  const newTransaction: any = {
     household_id: householdInfo.household_id,
     user_id: user.id,
     member_id: transaction.member_id,
@@ -1368,15 +1559,26 @@ export async function addTransaction(transaction: {
     category: transaction.category,
     amount: transaction.amount,
     description: transaction.description,
-    merchant: transaction.merchant,
-    location: transaction.location,
     transaction_date: new Date().toISOString().split('T')[0],
     expense_type: transaction.expense_type,
     approval_status: transaction.expense_type === 'allowance' ? 'pending' : 'approved',
-    payment_method: transaction.payment_method,
-    receipt_url: transaction.receipt_url,
     created_by: user.id
   };
+
+  // Add optional fields if they have meaningful values
+  if (transaction.merchant && transaction.merchant.trim()) {
+    newTransaction.merchant = transaction.merchant.trim();
+  }
+  if (transaction.location && transaction.location.trim()) {
+    newTransaction.location = transaction.location.trim();
+  }
+  if (transaction.payment_method && transaction.payment_method.trim()) {
+    newTransaction.payment_method = transaction.payment_method.trim();
+  }
+  if (transaction.receipt_url && transaction.receipt_url.trim()) {
+    newTransaction.receipt_url = transaction.receipt_url.trim();
+  }
+
 
   const { data, error } = await supabase
     .from('transactions')
@@ -1429,3 +1631,5 @@ export async function deleteTransaction(transactionId: string): Promise<void> {
 
   if (error) throw error;
 }
+ 
+
