@@ -59,11 +59,24 @@ const convertFromDatabase = (dbGoal: DatabaseSavingsGoal): SavingsGoal => ({
   icon: dbGoal.icon || '💰'
 });
 
+// Helper function to map form type to database category
+const mapTypeToCategory = (type: string): string => {
+  const typeMap: Record<string, string> = {
+    'emergency': 'emergency-fund',
+    'vacation': 'vacation',
+    'purchase': 'major-purchase',
+    'education': 'custom', // Map education to custom since it's not in constraint
+    'retirement': 'retirement',
+    'other': 'custom'
+  };
+  return typeMap[type] || 'custom';
+};
+
 // Helper function to convert UI format to database format
 const convertToDatabase = (goal: Partial<SavingsGoal>) => ({
   name: goal.name!,
   type: goal.type!,
-  category: goal.type!, // Use type as category since they appear to be similar
+  category: mapTypeToCategory(goal.type!), // Map type to valid category values
   target_amount: goal.targetAmount!,
   current_amount: goal.currentAmount || 0,
   target_date: goal.deadline || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default to 1 year from now
@@ -140,7 +153,7 @@ const SavingsPage: React.FC = () => {
         const updates = {
           name: newGoal.name,
           type: newGoal.type,
-          category: newGoal.type, // Use type as category
+          category: mapTypeToCategory(newGoal.type), // Map type to valid category
           target_amount: parseFloat(newGoal.targetAmount),
           current_amount: parseFloat(newGoal.currentAmount || '0'),
           target_date: newGoal.deadline || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
