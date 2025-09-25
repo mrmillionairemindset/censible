@@ -63,6 +63,7 @@ const convertFromDatabase = (dbGoal: DatabaseSavingsGoal): SavingsGoal => ({
 const convertToDatabase = (goal: Partial<SavingsGoal>) => ({
   name: goal.name!,
   type: goal.type!,
+  category: goal.type!, // Use type as category since they appear to be similar
   target_amount: goal.targetAmount!,
   current_amount: goal.currentAmount || 0,
   target_date: goal.deadline || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default to 1 year from now
@@ -139,6 +140,7 @@ const SavingsPage: React.FC = () => {
         const updates = {
           name: newGoal.name,
           type: newGoal.type,
+          category: newGoal.type, // Use type as category
           target_amount: parseFloat(newGoal.targetAmount),
           current_amount: parseFloat(newGoal.currentAmount || '0'),
           target_date: newGoal.deadline || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
