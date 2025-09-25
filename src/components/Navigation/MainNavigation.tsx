@@ -479,17 +479,6 @@ const MainNavigation: React.FC = () => {
               <NavLink to="/contact" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
                 Contact Support
               </NavLink>
-              <button className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
-                About
-              </button>
-            </div>
-
-            {/* Version/Status */}
-            <div className="flex items-center space-x-2 text-sm text-gray-500">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span>All systems operational</span>
-              <span className="text-gray-400">•</span>
-              <span>v1.0.0</span>
             </div>
           </div>
         </div>
