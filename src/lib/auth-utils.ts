@@ -669,3 +669,183 @@ export async function deleteBill(billId: string) {
 
   if (error) throw error;
 }
+
+/**
+ * Savings Goals Management Functions
+ */
+
+export interface SavingsGoal {
+  id: string;
+  household_id: string;
+  created_by: string;
+  name: string;
+  type: 'emergency' | 'vacation' | 'purchase' | 'education' | 'retirement' | 'other';
+  target_amount: number;
+  current_amount: number;
+  deadline?: string;
+  priority: 'high' | 'medium' | 'low';
+  auto_contribute: number;
+  contributors: string[];
+  notes?: string;
+  icon: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Get all savings goals for the user's household
+ */
+export async function getSavingsGoals(): Promise<SavingsGoal[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
+  const householdInfo = await getUserHousehold();
+  if (!householdInfo.household_id) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from('savings_goals')
+    .select('*')
+    .eq('household_id', householdInfo.household_id)
+    .eq('is_active', true)
+    .order('priority', { ascending: false })
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+
+  return data || [];
+}
+
+/**
+ * Get savings goals by priority
+ */
+export async function getSavingsGoalsByPriority(priority?: 'high' | 'medium' | 'low'): Promise<SavingsGoal[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
+  const householdInfo = await getUserHousehold();
+  if (!householdInfo.household_id) {
+    return [];
+  }
+
+  const { data, error } = await supabase.rpc('get_priority_savings_goals', {
+    p_household_id: householdInfo.household_id,
+    p_priority: priority || null
+  });
+
+  if (error) throw error;
+
+  return data?.map((goal: any) => ({
+    id: goal.id,
+    household_id: householdInfo.household_id,
+    created_by: '',
+    name: goal.name,
+    type: goal.type,
+    target_amount: goal.target_amount,
+    current_amount: goal.current_amount,
+    deadline: goal.deadline,
+    priority: goal.priority,
+    auto_contribute: 0,
+    contributors: [],
+    icon: '💰',
+    is_active: true,
+    created_at: '',
+    updated_at: ''
+  })) || [];
+}
+
+/**
+ * Create a new savings goal
+ */
+export async function createSavingsGoal(goal: Omit<SavingsGoal, 'id' | 'household_id' | 'created_by' | 'created_at' | 'updated_at'>) {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
+  const householdInfo = await getUserHousehold();
+  if (!householdInfo.household_id) {
+    throw new Error('User is not part of a household');
+  }
+
+  const { data, error } = await supabase
+    .from('savings_goals')
+    .insert({
+      ...goal,
+      household_id: householdInfo.household_id,
+      created_by: user.id
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return data;
+}
+
+/**
+ * Update a savings goal
+ */
+export async function updateSavingsGoal(goalId: string, updates: Partial<SavingsGoal>) {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
+  const { data, error } = await supabase
+    .from('savings_goals')
+    .update(updates)
+    .eq('id', goalId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return data;
+}
+
+/**
+ * Add contribution to a savings goal
+ */
+export async function addSavingsContribution(goalId: string, amount: number, contributorName?: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
+  const { error } = await supabase.rpc('add_savings_contribution', {
+    p_goal_id: goalId,
+    p_amount: amount,
+    p_contributor_name: contributorName || null
+  });
+
+  if (error) throw error;
+
+  // Return updated goal
+  const { data, error: getError } = await supabase
+    .from('savings_goals')
+    .select('*')
+    .eq('id', goalId)
+    .single();
+
+  if (getError) throw getError;
+
+  return data;
+}
+
+/**
+ * Delete a savings goal
+ */
+export async function deleteSavingsGoal(goalId: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
+  const { error } = await supabase
+    .from('savings_goals')
+    .update({ is_active: false })
+    .eq('id', goalId);
+
+  if (error) throw error;
+}

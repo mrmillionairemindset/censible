@@ -19,6 +19,14 @@ import {
   Users
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import {
+  getSavingsGoals,
+  createSavingsGoal,
+  updateSavingsGoal,
+  deleteSavingsGoal,
+  addSavingsContribution,
+  type SavingsGoal as DatabaseSavingsGoal
+} from '../lib/auth-utils';
 
 interface SavingsGoal {
   id: string;
@@ -28,35 +36,43 @@ interface SavingsGoal {
   currentAmount: number;
   deadline?: string;
   priority: 'high' | 'medium' | 'low';
-  autoContribute?: number; // Monthly auto-contribution
+  autoContribute?: number;
   contributors: string[];
   notes?: string;
   createdAt: string;
   icon?: string;
 }
 
-// Storage utility functions outside component to avoid JSX syntax issues
-const getStorageKey = (dataType: string, householdId: string) => {
-  return `centsible_${dataType}_${householdId || 'default'}`;
-};
+// Helper function to convert database format to UI format
+const convertFromDatabase = (dbGoal: DatabaseSavingsGoal): SavingsGoal => ({
+  id: dbGoal.id,
+  name: dbGoal.name,
+  type: dbGoal.type,
+  targetAmount: dbGoal.target_amount,
+  currentAmount: dbGoal.current_amount,
+  deadline: dbGoal.deadline,
+  priority: dbGoal.priority,
+  autoContribute: dbGoal.auto_contribute,
+  contributors: dbGoal.contributors || [],
+  notes: dbGoal.notes,
+  createdAt: dbGoal.created_at?.split('T')[0] || '',
+  icon: dbGoal.icon || '💰'
+});
 
-const loadFromStorage = (dataType: string, defaultValue: any, householdId: string): any => {
-  try {
-    const stored = localStorage.getItem(getStorageKey(dataType, householdId));
-    return stored ? JSON.parse(stored) : defaultValue;
-  } catch (error) {
-    console.error(`Failed to load ${dataType} from storage:`, error);
-    return defaultValue;
-  }
-};
-
-const saveToStorage = (dataType: string, data: any, householdId: string) => {
-  try {
-    localStorage.setItem(getStorageKey(dataType, householdId), JSON.stringify(data));
-  } catch (error) {
-    console.error(`Failed to save ${dataType} to storage:`, error);
-  }
-};
+// Helper function to convert UI format to database format
+const convertToDatabase = (goal: Partial<SavingsGoal>) => ({
+  name: goal.name!,
+  type: goal.type!,
+  target_amount: goal.targetAmount!,
+  current_amount: goal.currentAmount || 0,
+  deadline: goal.deadline,
+  priority: goal.priority!,
+  auto_contribute: goal.autoContribute || 0,
+  contributors: goal.contributors || [],
+  notes: goal.notes,
+  icon: goal.icon || '💰',
+  is_active: true
+});
 
 const SavingsPage: React.FC = () => {
   const { household, profile } = useAuth();
@@ -75,124 +91,83 @@ const SavingsPage: React.FC = () => {
     notes: ''
   });
 
-  // Default mock data for first-time users
-  const defaultGoals: SavingsGoal[] = [
-    {
-      id: '1',
-      name: 'Emergency Fund',
-      type: 'emergency',
-      targetAmount: 10000,
-      currentAmount: 6500,
-      priority: 'high',
-      autoContribute: 500,
-      contributors: ['Sarah', 'Mike'],
-      notes: '6 months of expenses',
-      createdAt: '2024-01-01',
-      icon: '🚨'
-    },
-    {
-      id: '2',
-      name: 'Summer Europe Trip',
-      type: 'vacation',
-      targetAmount: 5000,
-      currentAmount: 2100,
-      deadline: '2025-06-01',
-      priority: 'medium',
-      autoContribute: 300,
-      contributors: ['Sarah', 'Mike'],
-      notes: '2 weeks in Italy and France',
-      createdAt: '2024-03-01',
-      icon: '✈️'
-    },
-    {
-      id: '3',
-      name: 'New Car Down Payment',
-      type: 'purchase',
-      targetAmount: 8000,
-      currentAmount: 3200,
-      deadline: '2025-12-01',
-      priority: 'medium',
-      autoContribute: 400,
-      contributors: ['Mike'],
-      notes: 'Replace the old sedan',
-      createdAt: '2024-02-15',
-      icon: '🚗'
-    },
-    {
-      id: '4',
-      name: "Emma's College Fund",
-      type: 'education',
-      targetAmount: 50000,
-      currentAmount: 12000,
-      deadline: '2028-09-01',
-      priority: 'high',
-      autoContribute: 750,
-      contributors: ['Sarah', 'Mike'],
-      notes: 'University tuition and expenses',
-      createdAt: '2023-01-01',
-      icon: '🎓'
-    }
-  ];
-
-  // Load savings goals from localStorage or use defaults
-  const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>(() =>
-    loadFromStorage('savings_goals', defaultGoals, householdId)
-  );
+  const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showAddContribution, setShowAddContribution] = useState<string | null>(null);
+  const [contributionAmount, setContributionAmount] = useState('');
 
   const totalSaved = savingsGoals.reduce((sum, goal) => sum + goal.currentAmount, 0);
   const totalTarget = savingsGoals.reduce((sum, goal) => sum + goal.targetAmount, 0);
   const monthlyContributions = savingsGoals.reduce((sum, goal) => sum + (goal.autoContribute || 0), 0);
 
-  // Effect to save data whenever it changes
-  useEffect(() => {
-    saveToStorage('savings_goals', savingsGoals, householdId);
-  }, [savingsGoals, householdId]);
+  // Load savings goals from database
+  const loadSavingsGoals = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const dbGoals = await getSavingsGoals();
+      const uiGoals = dbGoals.map(convertFromDatabase);
+      setSavingsGoals(uiGoals);
+    } catch (err) {
+      console.error('Error loading savings goals:', err);
+      setError('Failed to load savings goals');
+      setSavingsGoals([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Effect to reload data when household changes
+  // Load data on component mount and household change
   useEffect(() => {
     if (household?.household_id) {
-      setSavingsGoals(loadFromStorage('savings_goals', [], householdId));
+      loadSavingsGoals();
+    } else {
+      setSavingsGoals([]);
+      setLoading(false);
     }
-  }, [household?.household_id, householdId]);
+  }, [household?.household_id]);
 
   // Handler to add or update a goal
-  const handleSaveGoal = () => {
+  const handleSaveGoal = async () => {
     if (!newGoal.name || !newGoal.targetAmount) return;
 
-    if (editingGoal) {
-      // Update existing goal
-      setSavingsGoals(prev => prev.map(goal =>
-        goal.id === editingGoal
-          ? {
-              ...goal,
-              name: newGoal.name,
-              type: newGoal.type,
-              targetAmount: parseFloat(newGoal.targetAmount),
-              currentAmount: parseFloat(newGoal.currentAmount || '0'),
-              deadline: newGoal.deadline || undefined,
-              priority: newGoal.priority,
-              autoContribute: parseFloat(newGoal.autoContribute) || undefined,
-              notes: newGoal.notes || undefined
-            }
-          : goal
-      ));
-      setEditingGoal(null);
-    } else {
-      // Add new goal
-      const goal: SavingsGoal = {
-        id: Date.now().toString(),
-        name: newGoal.name,
-        type: newGoal.type,
-        targetAmount: parseFloat(newGoal.targetAmount),
-        currentAmount: parseFloat(newGoal.currentAmount || '0'),
-        deadline: newGoal.deadline || undefined,
-        priority: newGoal.priority,
-        autoContribute: parseFloat(newGoal.autoContribute) || undefined,
-        contributors: [profile?.username || 'You'],
-        notes: newGoal.notes || undefined,
-        createdAt: new Date().toISOString().split('T')[0]
-      };
-      setSavingsGoals(prev => [...prev, goal]);
+    try {
+      if (editingGoal) {
+        // Update existing goal
+        const updates = {
+          name: newGoal.name,
+          type: newGoal.type,
+          target_amount: parseFloat(newGoal.targetAmount),
+          current_amount: parseFloat(newGoal.currentAmount || '0'),
+          deadline: newGoal.deadline || undefined,
+          priority: newGoal.priority,
+          auto_contribute: parseFloat(newGoal.autoContribute) || 0,
+          notes: newGoal.notes || undefined
+        };
+        await updateSavingsGoal(editingGoal, updates);
+        setEditingGoal(null);
+      } else {
+        // Add new goal
+        const goalData = convertToDatabase({
+          name: newGoal.name,
+          type: newGoal.type,
+          targetAmount: parseFloat(newGoal.targetAmount),
+          currentAmount: parseFloat(newGoal.currentAmount || '0'),
+          deadline: newGoal.deadline || undefined,
+          priority: newGoal.priority,
+          autoContribute: parseFloat(newGoal.autoContribute) || 0,
+          contributors: [profile?.username || 'You'],
+          notes: newGoal.notes || undefined
+        });
+        await createSavingsGoal(goalData);
+      }
+
+      // Reload goals from database
+      await loadSavingsGoals();
+    } catch (err) {
+      console.error('Error saving goal:', err);
+      setError('Failed to save goal');
     }
 
     // Reset form
@@ -229,9 +204,30 @@ const SavingsPage: React.FC = () => {
   };
 
   // Handler to delete a goal
-  const handleDeleteGoal = (goalId: string) => {
+  const handleDeleteGoal = async (goalId: string) => {
     if (window.confirm('Are you sure you want to delete this savings goal?')) {
-      setSavingsGoals(prev => prev.filter(goal => goal.id !== goalId));
+      try {
+        await deleteSavingsGoal(goalId);
+        await loadSavingsGoals(); // Reload goals
+      } catch (err) {
+        console.error('Error deleting goal:', err);
+        setError('Failed to delete goal');
+      }
+    }
+  };
+
+  // Handler to add contribution to a goal
+  const handleAddContribution = async (goalId: string) => {
+    if (!contributionAmount || parseFloat(contributionAmount) <= 0) return;
+
+    try {
+      await addSavingsContribution(goalId, parseFloat(contributionAmount), profile?.username);
+      await loadSavingsGoals(); // Reload goals to show updated amount
+      setShowAddContribution(null);
+      setContributionAmount('');
+    } catch (err) {
+      console.error('Error adding contribution:', err);
+      setError('Failed to add contribution');
     }
   };
 
@@ -421,7 +417,10 @@ const SavingsPage: React.FC = () => {
                 </div>
 
                 <div className="flex space-x-2 mt-4">
-                  <button className="flex-1 text-sm bg-mint-50 text-mint-700 px-3 py-1.5 rounded hover:bg-mint-100">
+                  <button
+                    onClick={() => setShowAddContribution(goal.id)}
+                    className="flex-1 text-sm bg-mint-50 text-mint-700 px-3 py-1.5 rounded hover:bg-mint-100"
+                  >
                     Add Funds
                   </button>
                   <button className="flex-1 text-sm bg-gray-50 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-100">
@@ -509,6 +508,7 @@ const SavingsPage: React.FC = () => {
                   <td className="py-4 px-6">
                     <div className="flex items-center justify-center space-x-2">
                       <button
+                        onClick={() => setShowAddContribution(goal.id)}
                         className="text-mint-600 hover:text-mint-700"
                         title="Add funds"
                       >
@@ -539,6 +539,20 @@ const SavingsPage: React.FC = () => {
     </div>
   );
 
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Savings Goals</h1>
+          <p className="text-gray-600">Loading your savings goals...</p>
+        </div>
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-mint-600"></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -548,6 +562,18 @@ const SavingsPage: React.FC = () => {
           Track your {household?.household_name || 'family'}'s savings goals and financial milestones
         </p>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex">
+            <AlertTriangle className="w-5 h-5 text-red-400" />
+            <div className="ml-3">
+              <p className="text-sm text-red-800">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="border-b border-gray-200">
@@ -707,6 +733,50 @@ const SavingsPage: React.FC = () => {
                 className="px-4 py-2 bg-mint-600 text-white rounded-lg hover:bg-mint-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {editingGoal ? 'Update Goal' : 'Create Goal'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Contribution Modal */}
+      {showAddContribution && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Add Contribution</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={contributionAmount}
+                    onChange={(e) => setContributionAmount(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-mint-500"
+                    autoFocus
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowAddContribution(null);
+                  setContributionAmount('');
+                }}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleAddContribution(showAddContribution)}
+                disabled={!contributionAmount || parseFloat(contributionAmount) <= 0}
+                className="px-4 py-2 bg-mint-600 text-white rounded-lg hover:bg-mint-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Add Contribution
               </button>
             </div>
           </div>

@@ -123,3 +123,80 @@ git push origin master
 - `docs: Update Claude documentation` ❌
 - `feat: Add functionality as requested by Claude` ❌
 - `fix: Issues found during development session` ❌
+
+## Version Tagging Strategy
+
+### Semantic Versioning Format
+`vMAJOR.MINOR.PATCH` (e.g., v3.1.0)
+
+### When to Tag Versions
+
+#### MAJOR Version (Breaking Changes)
+Create a major version when changes break backward compatibility:
+- Database schema migrations required
+- Authentication system overhauls
+- Data structure changes affecting existing users
+- Removal of existing features
+- Technology stack changes (e.g., localStorage → Supabase)
+- API contract changes
+
+**Examples:**
+- v3.0.0: "Migrate to Supabase database from localStorage"
+- v4.0.0: "Implement tiered pricing with feature restrictions"
+
+#### MINOR Version (New Features)
+Create a minor version for backward-compatible functionality:
+- New pages or navigation structure
+- Additional features (receipt scanning, reports)
+- UI redesigns maintaining functionality
+- Performance optimizations
+- New integrations
+
+**Examples:**
+- v3.1.0: "Add household management system"
+- v3.2.0: "Implement bill tracking and recurring transactions"
+
+#### PATCH Version (Fixes)
+Bundle fixes rather than tagging each one:
+- Bug fixes
+- Security patches
+- UI corrections
+- Documentation updates
+
+### Tagging Commands
+```bash
+# Pre-tag checklist
+npm run build              # Verify production build
+npm test                   # Run test suite
+git status                 # Ensure clean working tree
+
+# Create annotated tag
+git tag -a v3.1.0 -m "Feature: Add household management system"
+
+# Push tag to remote
+git push origin v3.1.0
+
+# Push all tags
+git push origin --tags
+
+# View existing tags
+git tag -l
+
+# Check current version
+git describe --tags --abbrev=0
+```
+
+### Commit Before Tagging
+Always create a release commit before tagging:
+```bash
+git add .
+git commit -m "Release v3.1.0: [Brief description]
+
+Features:
+- List new features
+
+Fixes:
+- List bug fixes
+
+Breaking changes: None"
+```
