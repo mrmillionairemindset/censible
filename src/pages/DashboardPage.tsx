@@ -173,7 +173,7 @@ const DashboardPage: React.FC = () => {
 
   // Calculate budget progress for each category
   const budgetProgress = useMemo(() => {
-    // Show all categories (both core and custom), sorted by allocated amount (highest first)
+    // Show all categories, sorted by allocated amount (highest first)
     // Categories with 0 allocation go to the end
     const sortedCategories = [...budget.categories].sort((a, b) => {
       if (a.allocated === 0 && b.allocated === 0) return 0;
@@ -197,8 +197,7 @@ const DashboardPage: React.FC = () => {
         budget: category.allocated,
         percentage: percentage,
         needsSetup: category.allocated === 0,
-        isCore: isCore,
-        isCustom: !isCore
+        isCore: isCore
       };
     });
   }, [budget.categories, transactions]);
@@ -280,11 +279,6 @@ const DashboardPage: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Budget Progress</h2>
-            {budgetProgress.filter(item => item.isCustom).length > 0 && (
-              <span className="text-sm text-gray-500">
-                {budgetProgress.length} categories ({budgetProgress.filter(item => item.isCustom).length} custom)
-              </span>
-            )}
           </div>
           <div className="space-y-4">
             {budgetProgress.length > 0 ? (
@@ -293,11 +287,6 @@ const DashboardPage: React.FC = () => {
                   <div className="flex justify-between items-center mb-2">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-gray-700">{item.category}</span>
-                      {item.isCustom && (
-                        <span className="px-1.5 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 rounded">
-                          Custom
-                        </span>
-                      )}
                     </div>
                     <span className="text-sm text-gray-600">
                       <>${item.spent.toLocaleString()} / ${item.budget.toLocaleString()}</>
