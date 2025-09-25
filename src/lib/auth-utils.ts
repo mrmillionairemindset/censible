@@ -849,3 +849,349 @@ export async function deleteSavingsGoal(goalId: string) {
 
   if (error) throw error;
 }
+
+/**
+ * Reports and Analytics Functions
+ */
+
+export interface SpendingByMember {
+  member: string;
+  amount: number;
+  percentage: number;
+  transactions: number;
+  color: string;
+}
+
+export interface CategoryBreakdown {
+  category: string;
+  amount: number;
+  percentage: number;
+  budgeted: number;
+  variance: number;
+  color: string;
+}
+
+export interface MonthlyTrend {
+  month: string;
+  income: number;
+  expenses: number;
+  savings: number;
+}
+
+/**
+ * Get spending breakdown by household members
+ */
+export async function getSpendingByMember(period: string = 'month'): Promise<SpendingByMember[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
+  const householdInfo = await getUserHousehold();
+  if (!householdInfo.household_id) {
+    return [];
+  }
+
+  // Calculate date range based on period
+  const now = new Date();
+  let startDate: Date;
+
+  switch (period) {
+    case 'week':
+      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      break;
+    case 'quarter':
+      startDate = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+      break;
+    case 'year':
+      startDate = new Date(now.getFullYear(), 0, 1);
+      break;
+    default: // month
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+  }
+
+  const { data, error } = await supabase
+    .from('transactions')
+    .select(`
+      amount,
+      created_by,
+      profiles:created_by (
+        username,
+        display_name
+      )
+    `)
+    .eq('household_id', householdInfo.household_id)
+    .gte('created_at', startDate.toISOString())
+    .lte('created_at', now.toISOString());
+
+  if (error) throw error;
+
+  // Group by member and calculate totals
+  const memberTotals: { [key: string]: { amount: number; transactions: number; name: string } } = {};
+  let totalAmount = 0;
+
+  data?.forEach((transaction: any) => {
+    const memberId = transaction.created_by;
+    const memberName = transaction.profiles?.display_name || transaction.profiles?.username || 'Unknown';
+    const amount = Math.abs(transaction.amount); // Use absolute value for spending
+
+    if (!memberTotals[memberId]) {
+      memberTotals[memberId] = { amount: 0, transactions: 0, name: memberName };
+    }
+
+    memberTotals[memberId].amount += amount;
+    memberTotals[memberId].transactions += 1;
+    totalAmount += amount;
+  });
+
+  // Convert to array with percentages and colors
+  const colors = ['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500', 'bg-yellow-500', 'bg-pink-500'];
+
+  return Object.keys(memberTotals).map((memberId, index) => {
+    const member = memberTotals[memberId];
+    return {
+      member: member.name,
+      amount: member.amount,
+      percentage: totalAmount > 0 ? (member.amount / totalAmount) * 100 : 0,
+      transactions: member.transactions,
+      color: colors[index % colors.length]
+    };
+  }).sort((a, b) => b.amount - a.amount);
+}
+
+/**
+ * Get category spending breakdown with budget comparison
+ */
+export async function getCategoryBreakdown(period: string = 'month'): Promise<CategoryBreakdown[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
+  const householdInfo = await getUserHousehold();
+  if (!householdInfo.household_id) {
+    return [];
+  }
+
+  // Calculate date range
+  const now = new Date();
+  let startDate: Date;
+
+  switch (period) {
+    case 'week':
+      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      break;
+    case 'quarter':
+      startDate = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+      break;
+    case 'year':
+      startDate = new Date(now.getFullYear(), 0, 1);
+      break;
+    default: // month
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+  }
+
+  // Get spending by category
+  const { data: transactions, error: transError } = await supabase
+    .from('transactions')
+    .select('amount, category')
+    .eq('household_id', householdInfo.household_id)
+    .gte('created_at', startDate.toISOString())
+    .lte('created_at', now.toISOString());
+
+  if (transError) throw transError;
+
+  // Get budget data for comparison
+  const { data: budgets, error: budgetError } = await supabase
+    .from('budget_categories')
+    .select('category, budgeted_amount')
+    .eq('household_id', householdInfo.household_id);
+
+  if (budgetError) throw budgetError;
+
+  // Group spending by category
+  const categoryTotals: { [key: string]: number } = {};
+  let totalSpent = 0;
+
+  transactions?.forEach((transaction: any) => {
+    const category = transaction.category || 'Other';
+    const amount = Math.abs(transaction.amount);
+
+    categoryTotals[category] = (categoryTotals[category] || 0) + amount;
+    totalSpent += amount;
+  });
+
+  // Create budget lookup
+  const budgetLookup: { [key: string]: number } = {};
+  budgets?.forEach((budget: any) => {
+    budgetLookup[budget.category] = budget.budgeted_amount || 0;
+  });
+
+  // Convert to array with budget comparison
+  const colors = ['bg-green-500', 'bg-blue-500', 'bg-purple-500', 'bg-orange-500', 'bg-yellow-500', 'bg-pink-500', 'bg-red-500', 'bg-gray-500'];
+
+  return Object.keys(categoryTotals).map((category, index) => {
+    const spent = categoryTotals[category];
+    const budgeted = budgetLookup[category] || 0;
+    const variance = spent - budgeted;
+
+    return {
+      category,
+      amount: spent,
+      percentage: totalSpent > 0 ? (spent / totalSpent) * 100 : 0,
+      budgeted,
+      variance,
+      color: colors[index % colors.length]
+    };
+  }).sort((a, b) => b.amount - a.amount);
+}
+
+/**
+ * Get monthly trends data
+ */
+export async function getMonthlyTrends(monthsBack: number = 9): Promise<MonthlyTrend[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
+  const householdInfo = await getUserHousehold();
+  if (!householdInfo.household_id) {
+    return [];
+  }
+
+  const now = new Date();
+  const startDate = new Date(now.getFullYear(), now.getMonth() - monthsBack, 1);
+
+  // Get expenses (transactions)
+  const { data: transactions, error: transError } = await supabase
+    .from('transactions')
+    .select('amount, created_at')
+    .eq('household_id', householdInfo.household_id)
+    .gte('created_at', startDate.toISOString());
+
+  if (transError) throw transError;
+
+  // Get income data
+  const { data: incomes, error: incomeError } = await supabase
+    .from('income_sources')
+    .select('amount, frequency')
+    .eq('household_id', householdInfo.household_id)
+    .eq('is_active', true);
+
+  if (incomeError) throw incomeError;
+
+  // Calculate monthly income (assuming consistent income)
+  let monthlyIncome = 0;
+  incomes?.forEach((income: any) => {
+    switch (income.frequency) {
+      case 'weekly':
+        monthlyIncome += (income.amount * 52) / 12;
+        break;
+      case 'bi-weekly':
+        monthlyIncome += (income.amount * 26) / 12;
+        break;
+      case 'monthly':
+        monthlyIncome += income.amount;
+        break;
+      case 'yearly':
+        monthlyIncome += income.amount / 12;
+        break;
+      default:
+        monthlyIncome += income.amount; // Default to monthly
+    }
+  });
+
+  // Group transactions by month
+  const monthlyData: { [key: string]: { expenses: number, month: string, year: number } } = {};
+
+  transactions?.forEach((transaction: any) => {
+    const date = new Date(transaction.created_at);
+    const monthYear = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+
+    if (!monthlyData[monthYear]) {
+      monthlyData[monthYear] = { expenses: 0, month: monthName, year: date.getFullYear() };
+    }
+
+    monthlyData[monthYear].expenses += Math.abs(transaction.amount);
+  });
+
+  // Convert to array and calculate savings
+  return Object.keys(monthlyData)
+    .sort()
+    .slice(-monthsBack)
+    .map(key => {
+      const data = monthlyData[key];
+      return {
+        month: data.month,
+        income: monthlyIncome,
+        expenses: data.expenses,
+        savings: monthlyIncome - data.expenses
+      };
+    });
+}
+
+/**
+ * Get report summary statistics
+ */
+export async function getReportSummary(period: string = 'month') {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
+  const householdInfo = await getUserHousehold();
+  if (!householdInfo.household_id) {
+    return {
+      totalSpent: 0,
+      averageDailySpend: 0,
+      savingsRate: 0,
+      familyMembers: 0
+    };
+  }
+
+  // Get member count
+  const { data: members } = await supabase
+    .from('household_members')
+    .select('id')
+    .eq('household_id', householdInfo.household_id);
+
+  // Get spending data
+  const spendingData = await getSpendingByMember(period);
+  const totalSpent = spendingData.reduce((sum, member) => sum + member.amount, 0);
+
+  // Get income for savings rate calculation
+  const { data: incomes } = await supabase
+    .from('income_sources')
+    .select('amount, frequency')
+    .eq('household_id', householdInfo.household_id)
+    .eq('is_active', true);
+
+  let monthlyIncome = 0;
+  incomes?.forEach((income: any) => {
+    switch (income.frequency) {
+      case 'weekly':
+        monthlyIncome += (income.amount * 52) / 12;
+        break;
+      case 'bi-weekly':
+        monthlyIncome += (income.amount * 26) / 12;
+        break;
+      case 'monthly':
+        monthlyIncome += income.amount;
+        break;
+      case 'yearly':
+        monthlyIncome += income.amount / 12;
+        break;
+      default:
+        monthlyIncome += income.amount;
+    }
+  });
+
+  const daysInPeriod = period === 'week' ? 7 : period === 'year' ? 365 : 30;
+  const averageDailySpend = totalSpent / daysInPeriod;
+  const savingsRate = monthlyIncome > 0 ? ((monthlyIncome - totalSpent) / monthlyIncome) * 100 : 0;
+
+  return {
+    totalSpent,
+    averageDailySpend,
+    savingsRate,
+    familyMembers: members?.length || 0
+  };
+}

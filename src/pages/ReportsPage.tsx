@@ -1,29 +1,21 @@
-import React, { useState } from 'react';
-import { BarChart3, PieChart, TrendingUp, Download, Calendar, Users, DollarSign, Target, Filter } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { BarChart3, PieChart, TrendingUp, Download, Calendar, Users, DollarSign, Target, Filter, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import {
+  getSpendingByMember,
+  getCategoryBreakdown,
+  getMonthlyTrends,
+  getReportSummary,
+  type SpendingByMember,
+  type CategoryBreakdown,
+  type MonthlyTrend
+} from '../lib/auth-utils';
 
-interface SpendingByMember {
-  member: string;
-  amount: number;
-  percentage: number;
-  transactions: number;
-  color: string;
-}
-
-interface CategoryBreakdown {
-  category: string;
-  amount: number;
-  percentage: number;
-  budgeted: number;
-  variance: number;
-  color: string;
-}
-
-interface MonthlyTrend {
-  month: string;
-  income: number;
-  expenses: number;
-  savings: number;
+interface ReportSummary {
+  totalSpent: number;
+  averageDailySpend: number;
+  savingsRate: number;
+  familyMembers: number;
 }
 
 const ReportsPage: React.FC = () => {
@@ -32,40 +24,50 @@ const ReportsPage: React.FC = () => {
   const [selectedMember, setSelectedMember] = useState('all');
   const [reportType, setReportType] = useState<'overview' | 'members' | 'categories' | 'trends'>('overview');
 
-  // Mock data - will be replaced with real data from database
-  const spendingByMember: SpendingByMember[] = [
-    { member: 'Sarah', amount: 1456.78, percentage: 45.2, transactions: 23, color: 'bg-blue-500' },
-    { member: 'Mike', amount: 987.34, percentage: 30.6, transactions: 18, color: 'bg-green-500' },
-    { member: 'Emma', amount: 456.90, percentage: 14.2, transactions: 15, color: 'bg-purple-500' },
-    { member: 'Jake', amount: 325.67, percentage: 10.1, transactions: 12, color: 'bg-orange-500' }
-  ];
+  const [spendingByMember, setSpendingByMember] = useState<SpendingByMember[]>([]);
+  const [categoryBreakdown, setCategoryBreakdown] = useState<CategoryBreakdown[]>([]);
+  const [monthlyTrends, setMonthlyTrends] = useState<MonthlyTrend[]>([]);
+  const [reportSummary, setReportSummary] = useState<ReportSummary>({ totalSpent: 0, averageDailySpend: 0, savingsRate: 0, familyMembers: 0 });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const categoryBreakdown: CategoryBreakdown[] = [
-    { category: 'Groceries', amount: 420, percentage: 25.2, budgeted: 600, variance: -180, color: 'bg-green-500' },
-    { category: 'Transportation', amount: 280, percentage: 16.8, budgeted: 250, variance: 30, color: 'bg-blue-500' },
-    { category: 'Entertainment', amount: 195, percentage: 11.7, budgeted: 200, variance: -5, color: 'bg-purple-500' },
-    { category: 'Dining Out', amount: 156, percentage: 9.4, budgeted: 150, variance: 6, color: 'bg-orange-500' },
-    { category: 'Utilities', amount: 245, percentage: 14.7, budgeted: 300, variance: -55, color: 'bg-yellow-500' },
-    { category: 'Personal Care', amount: 89, percentage: 5.3, budgeted: 120, variance: -31, color: 'bg-pink-500' },
-    { category: 'Healthcare', amount: 125, percentage: 7.5, budgeted: 200, variance: -75, color: 'bg-red-500' },
-    { category: 'Other', amount: 157, percentage: 9.4, budgeted: 100, variance: 57, color: 'bg-gray-500' }
-  ];
+  // Load reports data from database
+  const loadReportsData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-  const monthlyTrends: MonthlyTrend[] = [
-    { month: 'Jan', income: 5200, expenses: 4100, savings: 1100 },
-    { month: 'Feb', income: 5200, expenses: 3950, savings: 1250 },
-    { month: 'Mar', income: 5200, expenses: 4300, savings: 900 },
-    { month: 'Apr', income: 5200, expenses: 4150, savings: 1050 },
-    { month: 'May', income: 5200, expenses: 4400, savings: 800 },
-    { month: 'Jun', income: 5200, expenses: 4200, savings: 1000 },
-    { month: 'Jul', income: 5200, expenses: 4350, savings: 850 },
-    { month: 'Aug', income: 5200, expenses: 4100, savings: 1100 },
-    { month: 'Sep', income: 5200, expenses: 3900, savings: 1300 }
-  ];
+      const [memberData, categoryData, trendsData, summaryData] = await Promise.all([
+        getSpendingByMember(selectedPeriod),
+        getCategoryBreakdown(selectedPeriod),
+        getMonthlyTrends(9),
+        getReportSummary(selectedPeriod)
+      ]);
 
-  const totalSpent = spendingByMember.reduce((sum, member) => sum + member.amount, 0);
-  const averageDailySpend = totalSpent / 30; // Assuming 30 days in month
-  const savingsRate = ((5200 - totalSpent) / 5200) * 100;
+      setSpendingByMember(memberData);
+      setCategoryBreakdown(categoryData);
+      setMonthlyTrends(trendsData);
+      setReportSummary(summaryData);
+    } catch (err) {
+      console.error('Error loading reports data:', err);
+      setError('Failed to load reports data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load data on component mount and when period changes
+  useEffect(() => {
+    if (household?.household_id) {
+      loadReportsData();
+    } else {
+      setSpendingByMember([]);
+      setCategoryBreakdown([]);
+      setMonthlyTrends([]);
+      setReportSummary({ totalSpent: 0, averageDailySpend: 0, savingsRate: 0, familyMembers: 0 });
+      setLoading(false);
+    }
+  }, [household?.household_id, selectedPeriod]);
 
   const renderOverviewTab = () => (
     <div className="space-y-6">
@@ -75,7 +77,7 @@ const ReportsPage: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Total Spent</p>
-              <p className="text-2xl font-bold text-gray-900">${totalSpent.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900">${reportSummary.totalSpent.toLocaleString()}</p>
             </div>
             <div className="p-3 bg-red-50 rounded-lg">
               <DollarSign className="w-6 h-6 text-red-600" />
@@ -87,7 +89,7 @@ const ReportsPage: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Daily Average</p>
-              <p className="text-2xl font-bold text-gray-900">${averageDailySpend.toFixed(0)}</p>
+              <p className="text-2xl font-bold text-gray-900">${reportSummary.averageDailySpend.toFixed(0)}</p>
             </div>
             <div className="p-3 bg-blue-50 rounded-lg">
               <Calendar className="w-6 h-6 text-blue-600" />
@@ -99,7 +101,7 @@ const ReportsPage: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Savings Rate</p>
-              <p className="text-2xl font-bold text-green-600">{savingsRate.toFixed(1)}%</p>
+              <p className="text-2xl font-bold text-green-600">{reportSummary.savingsRate.toFixed(1)}%</p>
             </div>
             <div className="p-3 bg-green-50 rounded-lg">
               <TrendingUp className="w-6 h-6 text-green-600" />
@@ -111,7 +113,7 @@ const ReportsPage: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Family Members</p>
-              <p className="text-2xl font-bold text-gray-900">{spendingByMember.length}</p>
+              <p className="text-2xl font-bold text-gray-900">{reportSummary.familyMembers}</p>
             </div>
             <div className="p-3 bg-purple-50 rounded-lg">
               <Users className="w-6 h-6 text-purple-600" />
@@ -366,8 +368,34 @@ const ReportsPage: React.FC = () => {
     </div>
   );
 
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Family Reports</h1>
+          <p className="text-gray-600">Loading your reports...</p>
+        </div>
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-mint-600"></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex">
+            <AlertTriangle className="w-5 h-5 text-red-400" />
+            <div className="ml-3">
+              <p className="text-sm text-red-800">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         <div>
