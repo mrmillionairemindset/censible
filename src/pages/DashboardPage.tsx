@@ -378,7 +378,7 @@ const DashboardPage: React.FC = () => {
       {/* Recent Transactions */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Recent Family Transactions</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Recent Transactions</h2>
           <button className="text-mint-600 hover:text-mint-700 text-sm font-medium">
             View all
           </button>
