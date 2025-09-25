@@ -5,7 +5,6 @@ import { CategoryType } from '../types';
 import CategorySelect from '../components/UI/CategorySelect';
 import CategoryBadge from '../components/UI/CategoryBadge';
 import {
-  getHouseholdBills,
   getUpcomingBills,
   getRecurringExpenses,
   createBill,
@@ -19,25 +18,14 @@ import toast from 'react-hot-toast';
 // Using Bill interface from auth-utils.ts
 // Using DatabaseBill as the main Bill interface
 
-interface RecurringExpense {
-  id: string;
-  name: string;
-  amount: number;
-  frequency: string;
-  category: CategoryType;
-  isActive: boolean;
-  startDate: string;
-  endDate?: string;
-  reminderEnabled: boolean;
-}
+// Using DatabaseBill from auth-utils.ts for all bill/recurring expense operations
 
 const BillsPage: React.FC = () => {
   const { household } = useAuth();
   const [activeTab, setActiveTab] = useState<'bills' | 'recurring' | 'history'>('bills');
   const [showAddBill, setShowAddBill] = useState(false);
   const [showAddSubscription, setShowAddSubscription] = useState(false);
-  const [selectedBill, setSelectedBill] = useState<string | null>(null);
-  const [editingSubscription, setEditingSubscription] = useState<RecurringExpense | null>(null);
+  const [editingSubscription, setEditingSubscription] = useState<DatabaseBill | null>(null);
   const [editingBill, setEditingBill] = useState<DatabaseBill | null>(null);
 
   // Real data state
@@ -66,238 +54,266 @@ const BillsPage: React.FC = () => {
 
   // Mock recurring expenses removed - now using live data from useEffect
 
-  // Mock data - will be replaced with real data from database
-  const [upcomingBills, setUpcomingBills] = useState<Bill[]>([
-    {
-      id: '1',
-      name: 'Mortgage Payment',
-      description: 'Monthly home mortgage',
-      amount: 1850.00,
-      dueDate: '2025-09-28',
-      frequency: 'monthly',
-      category: 'housing',
-      paymentMethod: 'Bank Transfer',
-      status: 'pending',
-      isAutomatic: true,
-      reminderDays: 3,
-      nextDue: '2025-09-28',
-      assignedTo: 'Sarah',
-      notes: 'Automatic payment from checking account'
-    },
-    {
-      id: '2',
-      name: 'Electric Bill',
-      description: 'Monthly electricity usage',
-      amount: 156.42,
-      dueDate: '2025-09-25',
-      frequency: 'monthly',
-      category: 'utilities',
-      paymentMethod: 'Credit Card ****1234',
-      status: 'pending',
-      isAutomatic: false,
-      reminderDays: 5,
-      nextDue: '2025-09-25',
-      assignedTo: 'Mike'
-    },
-    {
-      id: '3',
-      name: 'Internet Service',
-      description: 'High-speed internet',
-      amount: 89.99,
-      dueDate: '2025-09-24',
-      frequency: 'monthly',
-      category: 'utilities',
-      paymentMethod: 'Auto-pay',
-      status: 'overdue',
-      isAutomatic: true,
-      reminderDays: 3,
-      nextDue: '2025-09-24',
-      assignedTo: 'Sarah'
-    },
-    {
-      id: '4',
-      name: 'Phone Plan',
-      description: 'Family mobile plan',
-      amount: 120.00,
-      dueDate: '2025-09-30',
-      frequency: 'monthly',
-      category: 'utilities',
-      paymentMethod: 'Credit Card ****5678',
-      status: 'pending',
-      isAutomatic: true,
-      reminderDays: 2,
-      nextDue: '2025-09-30',
-      assignedTo: 'Mike'
-    },
-    {
-      id: '5',
-      name: 'Car Insurance',
-      description: '6-month premium',
-      amount: 892.50,
-      dueDate: '2025-10-15',
-      frequency: 'quarterly',
-      category: 'insurance',
-      paymentMethod: 'Bank Transfer',
-      status: 'pending',
-      isAutomatic: false,
-      reminderDays: 14,
-      nextDue: '2025-10-15',
-      assignedTo: 'Sarah'
-    }
-  ]);
+  // Load real data from database
+  useEffect(() => {
+    const loadBillsData = async () => {
+      if (!household?.household_id) {
+        setLoading(false);
+        return;
+      }
 
-  // Handler to add new subscription
-  const handleAddSubscription = () => {
-    if (!newSubscription.name || !newSubscription.amount || !newSubscription.category || !newSubscription.startDate) return;
+      try {
+        setLoading(true);
 
-    const subscription: RecurringExpense = {
-      id: Date.now().toString(),
-      name: newSubscription.name,
-      amount: parseFloat(newSubscription.amount),
-      frequency: newSubscription.frequency,
-      category: newSubscription.category,
-      isActive: true,
-      startDate: newSubscription.startDate,
-      reminderEnabled: false
+        // Load upcoming bills and recurring expenses in parallel
+        const [billsData, recurringData] = await Promise.all([
+          getUpcomingBills(30), // Get bills for the next 30 days
+          getRecurringExpenses()
+        ]);
+
+        setUpcomingBills(billsData || []);
+        setRecurringExpenses(recurringData || []);
+      } catch (error) {
+        console.error('Error loading bills data:', error);
+        toast.error('Failed to load bills data. Please try again.');
+        setUpcomingBills([]);
+        setRecurringExpenses([]);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    setRecurringExpenses(prev => [...prev, subscription]);
-    setNewSubscription({ name: '', amount: '', frequency: 'Monthly', category: 'other' as CategoryType, startDate: '' });
-    setShowAddSubscription(false);
+    loadBillsData();
+  }, [household]);
+
+  // Handler to add new subscription
+  const handleAddSubscription = async () => {
+    if (!newSubscription.name || !newSubscription.amount || !newSubscription.category || !newSubscription.startDate) return;
+
+    try {
+      const subscriptionData = {
+        name: newSubscription.name,
+        description: `Recurring ${newSubscription.frequency.toLowerCase()} subscription`,
+        amount: parseFloat(newSubscription.amount),
+        due_date: newSubscription.startDate,
+        frequency: newSubscription.frequency.toLowerCase() as 'monthly' | 'yearly' | 'quarterly' | 'weekly',
+        category: newSubscription.category,
+        payment_method: '',
+        status: 'pending' as const,
+        is_automatic: true,
+        is_recurring: true,
+        is_active: true,
+        reminder_days: 3,
+        reminder_enabled: true,
+        start_date: newSubscription.startDate,
+        assigned_to: '',
+        notes: ''
+      };
+
+      await createBill(subscriptionData);
+
+      // Reload data after successful creation
+      const recurringData = await getRecurringExpenses();
+      setRecurringExpenses(recurringData || []);
+
+      setNewSubscription({ name: '', amount: '', frequency: 'Monthly', category: 'other' as CategoryType, startDate: '' });
+      setShowAddSubscription(false);
+      toast.success('Subscription added successfully');
+    } catch (error) {
+      console.error('Error adding subscription:', error);
+      toast.error('Failed to add subscription. Please try again.');
+    }
   };
 
   // Handler to edit subscription
-  const handleEditSubscription = (subscription: RecurringExpense) => {
+  const handleEditSubscription = (subscription: DatabaseBill) => {
     setEditingSubscription(subscription);
     setNewSubscription({
       name: subscription.name,
       amount: subscription.amount.toString(),
-      frequency: subscription.frequency,
-      category: subscription.category,
-      startDate: subscription.startDate
+      frequency: subscription.frequency.charAt(0).toUpperCase() + subscription.frequency.slice(1), // Capitalize first letter
+      category: subscription.category as CategoryType,
+      startDate: subscription.due_date || ''
     });
     setShowAddSubscription(true);
   };
 
   // Handler to update subscription
-  const handleUpdateSubscription = () => {
+  const handleUpdateSubscription = async () => {
     if (!editingSubscription || !newSubscription.name || !newSubscription.amount || !newSubscription.category || !newSubscription.startDate) return;
 
-    const updatedSubscription: RecurringExpense = {
-      ...editingSubscription,
-      name: newSubscription.name,
-      amount: parseFloat(newSubscription.amount),
-      frequency: newSubscription.frequency,
-      category: newSubscription.category,
-      startDate: newSubscription.startDate
-    };
+    try {
+      const updates = {
+        name: newSubscription.name,
+        amount: parseFloat(newSubscription.amount),
+        frequency: newSubscription.frequency.toLowerCase() as 'monthly' | 'yearly' | 'quarterly' | 'weekly',
+        category: newSubscription.category,
+        due_date: newSubscription.startDate
+      };
 
-    setRecurringExpenses(prev => prev.map(sub => sub.id === editingSubscription.id ? updatedSubscription : sub));
-    setNewSubscription({ name: '', amount: '', frequency: 'Monthly', category: 'other' as CategoryType, startDate: '' });
-    setShowAddSubscription(false);
-    setEditingSubscription(null);
+      await updateBill(editingSubscription.id, updates);
+
+      // Reload data after successful update
+      const recurringData = await getRecurringExpenses();
+      setRecurringExpenses(recurringData || []);
+
+      setNewSubscription({ name: '', amount: '', frequency: 'Monthly', category: 'other' as CategoryType, startDate: '' });
+      setShowAddSubscription(false);
+      setEditingSubscription(null);
+      toast.success('Subscription updated successfully');
+    } catch (error) {
+      console.error('Error updating subscription:', error);
+      toast.error('Failed to update subscription. Please try again.');
+    }
   };
 
   // Handler to delete subscription
-  const handleDeleteSubscription = (subscriptionId: string) => {
+  const handleDeleteSubscription = async (subscriptionId: string) => {
     if (!window.confirm('Are you sure you want to delete this subscription?')) return;
-    setRecurringExpenses(prev => prev.filter(sub => sub.id !== subscriptionId));
+
+    try {
+      await deleteBill(subscriptionId);
+
+      // Reload data after successful deletion
+      const recurringData = await getRecurringExpenses();
+      setRecurringExpenses(recurringData || []);
+
+      toast.success('Subscription deleted successfully');
+    } catch (error) {
+      console.error('Error deleting subscription:', error);
+      toast.error('Failed to delete subscription. Please try again.');
+    }
   };
 
   // Handler to edit bill
-  const handleEditBill = (bill: Bill) => {
+  const handleEditBill = (bill: DatabaseBill) => {
     setEditingBill(bill);
     setNewBill({
       name: bill.name,
       description: bill.description || '',
       amount: bill.amount.toString(),
-      dueDate: bill.dueDate,
+      dueDate: bill.due_date || '',
       frequency: bill.frequency,
-      category: bill.category,
-      paymentMethod: bill.paymentMethod,
-      isAutomatic: bill.isAutomatic,
-      reminderDays: bill.reminderDays,
-      assignedTo: bill.assignedTo || ''
+      category: bill.category as CategoryType,
+      paymentMethod: bill.payment_method || '',
+      isAutomatic: bill.is_automatic,
+      reminderDays: bill.reminder_days,
+      assignedTo: bill.assigned_to || ''
     });
     setShowAddBill(true);
   };
 
   // Handler to update bill
-  const handleUpdateBill = () => {
+  const handleUpdateBill = async () => {
     if (!editingBill || !newBill.name || !newBill.amount || !newBill.dueDate) return;
 
-    const updatedBill: Bill = {
-      ...editingBill,
-      name: newBill.name,
-      description: newBill.description,
-      amount: parseFloat(newBill.amount),
-      dueDate: newBill.dueDate,
-      frequency: newBill.frequency,
-      category: newBill.category,
-      paymentMethod: newBill.paymentMethod,
-      isAutomatic: newBill.isAutomatic,
-      reminderDays: newBill.reminderDays,
-      assignedTo: newBill.assignedTo,
-      nextDue: newBill.dueDate // Update next due date
-    };
+    try {
+      const updates = {
+        name: newBill.name,
+        description: newBill.description,
+        amount: parseFloat(newBill.amount),
+        due_date: newBill.dueDate,
+        frequency: newBill.frequency,
+        category: newBill.category,
+        payment_method: newBill.paymentMethod || '',
+        is_automatic: newBill.isAutomatic,
+        reminder_days: newBill.reminderDays,
+        assigned_to: newBill.assignedTo || ''
+      };
 
-    setUpcomingBills(prev => prev.map(bill => bill.id === editingBill.id ? updatedBill : bill));
-    setNewBill({
-      name: '',
-      description: '',
-      amount: '',
-      dueDate: '',
-      frequency: 'monthly',
-      category: 'other' as CategoryType,
-      paymentMethod: '',
-      isAutomatic: false,
-      reminderDays: 3,
-      assignedTo: ''
-    });
-    setShowAddBill(false);
-    setEditingBill(null);
+      await updateBill(editingBill.id, updates);
+
+      // Reload data after successful update
+      const billsData = await getUpcomingBills(30);
+      setUpcomingBills(billsData || []);
+
+      setNewBill({
+        name: '',
+        description: '',
+        amount: '',
+        dueDate: '',
+        frequency: 'monthly',
+        category: 'other' as CategoryType,
+        paymentMethod: '',
+        isAutomatic: false,
+        reminderDays: 3,
+        assignedTo: ''
+      });
+      setShowAddBill(false);
+      setEditingBill(null);
+      toast.success('Bill updated successfully');
+    } catch (error) {
+      console.error('Error updating bill:', error);
+      toast.error('Failed to update bill. Please try again.');
+    }
   };
 
   // Handler to delete bill
-  const handleDeleteBill = (billId: string) => {
+  const handleDeleteBill = async (billId: string) => {
     if (!window.confirm('Are you sure you want to delete this bill?')) return;
-    setUpcomingBills(prev => prev.filter(bill => bill.id !== billId));
+
+    try {
+      await deleteBill(billId);
+
+      // Reload data after successful deletion
+      const billsData = await getUpcomingBills(30);
+      setUpcomingBills(billsData || []);
+
+      toast.success('Bill deleted successfully');
+    } catch (error) {
+      console.error('Error deleting bill:', error);
+      toast.error('Failed to delete bill. Please try again.');
+    }
   };
 
   // Handler to add new bill
-  const handleAddBill = () => {
+  const handleAddBill = async () => {
     if (!newBill.name || !newBill.amount || !newBill.dueDate) return;
 
-    const bill: Bill = {
-      id: Date.now().toString(),
-      name: newBill.name,
-      description: newBill.description,
-      amount: parseFloat(newBill.amount),
-      dueDate: newBill.dueDate,
-      frequency: newBill.frequency,
-      category: newBill.category,
-      paymentMethod: newBill.paymentMethod || 'Not specified',
-      status: 'pending',
-      isAutomatic: newBill.isAutomatic,
-      reminderDays: newBill.reminderDays,
-      nextDue: newBill.dueDate,
-      assignedTo: newBill.assignedTo
-    };
+    try {
+      const billData = {
+        name: newBill.name,
+        description: newBill.description,
+        amount: parseFloat(newBill.amount),
+        due_date: newBill.dueDate,
+        frequency: newBill.frequency,
+        category: newBill.category,
+        payment_method: newBill.paymentMethod || '',
+        status: 'pending' as const,
+        is_automatic: newBill.isAutomatic,
+        is_recurring: newBill.frequency !== 'one-time',
+        is_active: true,
+        reminder_days: newBill.reminderDays,
+        reminder_enabled: newBill.reminderDays > 0,
+        start_date: newBill.dueDate,
+        assigned_to: newBill.assignedTo || '',
+        notes: ''
+      };
 
-    setUpcomingBills(prev => [...prev, bill]);
-    setNewBill({
-      name: '',
-      description: '',
-      amount: '',
-      dueDate: '',
-      frequency: 'monthly',
-      category: 'other' as CategoryType,
-      paymentMethod: '',
-      isAutomatic: false,
-      reminderDays: 3,
-      assignedTo: ''
-    });
-    setShowAddBill(false);
+      await createBill(billData);
+
+      // Reload data after successful creation
+      const billsData = await getUpcomingBills(30);
+      setUpcomingBills(billsData || []);
+
+      setNewBill({
+        name: '',
+        description: '',
+        amount: '',
+        dueDate: '',
+        frequency: 'monthly',
+        category: 'other' as CategoryType,
+        paymentMethod: '',
+        isAutomatic: false,
+        reminderDays: 3,
+        assignedTo: ''
+      });
+      setShowAddBill(false);
+      toast.success('Bill added successfully');
+    } catch (error) {
+      console.error('Error adding bill:', error);
+      toast.error('Failed to add bill. Please try again.');
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -341,9 +357,19 @@ const BillsPage: React.FC = () => {
   const overdueCount = upcomingBills.filter(bill => bill.status === 'overdue').length;
   const pendingCount = upcomingBills.filter(bill => bill.status === 'pending').length;
 
-  const handleMarkAsPaid = (billId: string) => {
-    // In real app, this would update the bill status
-    console.log('Marking bill as paid:', billId);
+  const handleMarkAsPaid = async (billId: string) => {
+    try {
+      await markBillPaid(billId);
+
+      // Reload data after successful update
+      const billsData = await getUpcomingBills(30);
+      setUpcomingBills(billsData || []);
+
+      toast.success('Bill marked as paid');
+    } catch (error) {
+      console.error('Error marking bill as paid:', error);
+      toast.error('Failed to mark bill as paid. Please try again.');
+    }
   };
 
   const renderBillsTab = () => (
@@ -416,32 +442,32 @@ const BillsPage: React.FC = () => {
             </thead>
             <tbody>
               {upcomingBills.map((bill) => {
-                const daysUntil = getDaysUntilDue(bill.dueDate);
+                const daysUntil = getDaysUntilDue(bill.due_date || '');
                 return (
                   <tr key={bill.id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="py-4 px-6">
                       <div>
                         <div className="font-medium text-gray-900 flex items-center space-x-2">
                           <span>{bill.name}</span>
-                          {bill.isAutomatic && (
+                          {bill.is_automatic && (
                             <Repeat className="w-4 h-4 text-green-500" />
                           )}
                         </div>
                         {bill.description && (
                           <div className="text-sm text-gray-600">{bill.description}</div>
                         )}
-                        <div className="text-sm text-gray-500">{bill.paymentMethod}</div>
+                        <div className="text-sm text-gray-500">{bill.payment_method || 'Not specified'}</div>
                       </div>
                     </td>
                     <td className="py-4 px-6">
-                      <CategoryBadge category={bill.category} size="sm" />
+                      <CategoryBadge category={bill.category as CategoryType} size="sm" />
                     </td>
                     <td className="py-4 px-6">
                       <span className="font-semibold text-gray-900">${bill.amount}</span>
                     </td>
                     <td className="py-4 px-6">
                       <div>
-                        <div className="text-sm text-gray-900">{bill.dueDate}</div>
+                        <div className="text-sm text-gray-900">{bill.due_date}</div>
                         <div className={`text-xs ${
                           daysUntil < 0 ? 'text-red-600' :
                           daysUntil <= 3 ? 'text-yellow-600' :
@@ -459,7 +485,7 @@ const BillsPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="py-4 px-6">
-                      <span className="text-sm text-gray-900">{bill.assignedTo}</span>
+                      <span className="text-sm text-gray-900">{bill.assigned_to || 'Unassigned'}</span>
                     </td>
                     <td className="py-4 px-6 text-center">
                       <div className="flex items-center justify-center space-x-2">
@@ -527,10 +553,10 @@ const BillsPage: React.FC = () => {
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h4 className="font-semibold text-gray-900">{expense.name}</h4>
-                <CategoryBadge category={expense.category} size="sm" />
+                <CategoryBadge category={expense.category as CategoryType} size="sm" />
               </div>
               <div className="flex space-x-2">
-                {expense.reminderEnabled && (
+                {expense.reminder_days > 0 && (
                   <Bell className="w-4 h-4 text-yellow-500" />
                 )}
                 <button
@@ -557,31 +583,33 @@ const BillsPage: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-gray-600">Frequency:</span>
-                <span className="text-sm text-gray-900">{expense.frequency}</span>
+                <span className="text-sm text-gray-900">{expense.frequency.charAt(0).toUpperCase() + expense.frequency.slice(1)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-gray-600">Status:</span>
                 <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                  expense.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                  expense.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                 }`}>
-                  {expense.isActive ? 'Active' : 'Inactive'}
+                  {expense.is_active ? 'Active' : 'Inactive'}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Start Date:</span>
-                <span className="text-sm text-gray-900">{expense.startDate}</span>
-              </div>
-              {expense.endDate && (
+              {expense.due_date && (
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">End Date:</span>
-                  <span className="text-sm text-gray-900">{expense.endDate}</span>
+                  <span className="text-sm text-gray-600">Next Due:</span>
+                  <span className="text-sm text-gray-900">{expense.due_date}</span>
+                </div>
+              )}
+              {expense.payment_method && (
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Payment Method:</span>
+                  <span className="text-sm text-gray-900">{expense.payment_method}</span>
                 </div>
               )}
             </div>
 
             <div className="mt-4 pt-4 border-t border-gray-100">
               <button className="w-full text-sm text-gray-600 hover:text-gray-800">
-                {expense.isActive ? 'Pause Subscription' : 'Reactivate Subscription'}
+                {expense.is_active ? 'Pause Subscription' : 'Reactivate Subscription'}
               </button>
             </div>
           </div>
@@ -606,6 +634,23 @@ const BillsPage: React.FC = () => {
       </div>
     </div>
   );
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Bills & Recurring</h1>
+          <p className="text-gray-600">
+            Manage your {household?.household_name || 'family'} bills, subscriptions, and recurring expenses
+          </p>
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-mint-600"></div>
+          <span className="ml-3 text-gray-600">Loading bills data...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

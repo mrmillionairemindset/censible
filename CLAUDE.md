@@ -89,16 +89,26 @@
 ## 🔄 Development Workflow
 **MANDATORY: Create commit after EVERY significant change to app code:**
 1. Complete any implementation/fix/feature work
-2. Stage all changes: `git add .`
-3. Create commit with descriptive message: `git commit -m "[commit message]"`
-4. Push to remote: `git push origin master`
-5. **ONLY include app functionality changes** - No mentions of documentation or local scripts
-6. **NEVER mention "Claude" in commit messages** - Focus only on what was changed in the application
-7. Use conventional commit format: `feat:`, `fix:`, `refactor:`, etc.
-8. Commit covers the actual functionality added/changed, not the development process
+2. **Run quality checks first:**
+   - `npm run build` - Catch any production build errors
+   - `npm test` - Run tests if available
+   - `npm run lint` - Check code quality
+3. Stage all changes: `git add .`
+4. Create commit with descriptive message: `git commit -m "[commit message]"`
+5. Push to remote: `git push origin master`
+6. **ONLY include app functionality changes** - No mentions of documentation or local scripts
+7. **NEVER mention "Claude" in commit messages** - Focus only on what was changed in the application
+8. Use conventional commit format: `feat:`, `fix:`, `refactor:`, etc.
+9. Commit covers the actual functionality added/changed, not the development process
 
 **Complete commit sequence:**
 ```bash
+# Run these checks first:
+npm run build  # Catch any production build errors
+npm test       # Run tests if available
+npm run lint   # Check code quality
+
+# Then commit:
 git add .
 git commit -m "[commit message]"
 git push origin master
