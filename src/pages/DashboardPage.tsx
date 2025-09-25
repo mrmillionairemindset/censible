@@ -300,33 +300,21 @@ const DashboardPage: React.FC = () => {
                       )}
                     </div>
                     <span className="text-sm text-gray-600">
-                      {item.needsSetup ? (
-                        <span className="text-amber-600">Needs setup</span>
-                      ) : (
-                        <>${item.spent.toLocaleString()} / ${item.budget.toLocaleString()}</>
-                      )}
+                      <>${item.spent.toLocaleString()} / ${item.budget.toLocaleString()}</>
                     </span>
                   </div>
-                  {!item.needsSetup ? (
-                    <>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className={`h-2 rounded-full ${getProgressColor(item.percentage)}`}
-                          style={{ width: `${Math.min(item.percentage, 100)}%` }}
-                        ></div>
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {item.percentage}% used
-                        {item.percentage > 100 && (
-                          <span className="text-red-600 font-medium"> (Over budget!)</span>
-                        )}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-xs text-amber-600 mt-1">
-                      Set a budget amount in the Budget tab
-                    </div>
-                  )}
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full ${getProgressColor(item.percentage)}`}
+                      style={{ width: `${Math.min(item.percentage, 100)}%` }}
+                    ></div>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {item.percentage}% used
+                    {item.percentage > 100 && (
+                      <span className="text-red-600 font-medium"> (Over budget!)</span>
+                    )}
+                  </div>
                 </div>
               ))
             ) : (
