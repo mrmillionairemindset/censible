@@ -28,6 +28,7 @@ import SavingsPage from '../../pages/SavingsPage';
 import HouseholdPage from '../../pages/HouseholdPage';
 import BillsPage from '../../pages/BillsPage';
 import ReportsPage from '../../pages/ReportsPage';
+import Privacy from '../../pages/Privacy';
 
 const MainNavigation: React.FC = () => {
   const { user, profile, household, signOut } = useAuth();
@@ -428,6 +429,9 @@ const MainNavigation: React.FC = () => {
             />
           ))}
 
+          {/* Privacy Policy route */}
+          <Route path="/privacy" element={<Privacy />} />
+
           {/* Catch all route - redirect to dashboard */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
@@ -444,9 +448,9 @@ const MainNavigation: React.FC = () => {
 
             {/* Links */}
             <div className="flex items-center space-x-6">
-              <button className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+              <NavLink to="/privacy" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
                 Privacy Policy
-              </button>
+              </NavLink>
               <button className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
                 Terms of Service
               </button>
