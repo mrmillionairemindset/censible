@@ -30,6 +30,7 @@ import BillsPage from '../../pages/BillsPage';
 import ReportsPage from '../../pages/ReportsPage';
 import Privacy from '../../pages/Privacy';
 import Terms from '../../pages/Terms';
+import Contact from '../../pages/Contact';
 import CentsibleLogo from '../../assets/centsible-logo.png';
 
 const MainNavigation: React.FC = () => {
@@ -437,6 +438,9 @@ const MainNavigation: React.FC = () => {
           {/* Terms of Service route */}
           <Route path="/terms" element={<Terms />} />
 
+          {/* Contact route */}
+          <Route path="/contact" element={<Contact />} />
+
           {/* Catch all route - redirect to dashboard */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
@@ -468,9 +472,9 @@ const MainNavigation: React.FC = () => {
               <NavLink to="/terms" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
                 Terms of Service
               </NavLink>
-              <button className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+              <NavLink to="/contact" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
                 Contact Support
-              </button>
+              </NavLink>
               <button className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
                 About
               </button>
