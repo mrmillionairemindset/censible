@@ -474,6 +474,79 @@ export async function getHouseholdMembers(): Promise<HouseholdMember[]> {
 }
 
 /**
+ * Remove a member from the household
+ */
+export async function removeHouseholdMember(memberId: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
+  const householdInfo = await getUserHousehold();
+  if (!householdInfo.household_id) {
+    throw new Error('User is not part of a household');
+  }
+
+  if (!['owner', 'admin'].includes(householdInfo.role || '')) {
+    throw new Error('Only household owners and admins can remove members');
+  }
+
+  const { error } = await supabase
+    .from('household_members')
+    .delete()
+    .eq('id', memberId)
+    .eq('household_id', householdInfo.household_id);
+
+  if (error) throw error;
+}
+
+/**
+ * Update household member permissions and settings
+ */
+export async function updateHouseholdMember(memberId: string, updates: Partial<HouseholdMember>) {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
+  const householdInfo = await getUserHousehold();
+  if (!householdInfo.household_id) {
+    throw new Error('User is not part of a household');
+  }
+
+  if (!['owner', 'admin'].includes(householdInfo.role || '')) {
+    throw new Error('Only household owners and admins can update member permissions');
+  }
+
+  // Filter updates to only include allowed fields
+  const allowedUpdates = {
+    ...(updates.role && { role: updates.role }),
+    ...(updates.member_type && { member_type: updates.member_type }),
+    ...(updates.monthly_allowance !== undefined && { monthly_allowance: updates.monthly_allowance }),
+    ...(updates.allowance_balance !== undefined && { allowance_balance: updates.allowance_balance }),
+    ...(updates.monthly_spending_limit !== undefined && { monthly_spending_limit: updates.monthly_spending_limit }),
+    ...(updates.can_edit_budget !== undefined && { can_edit_budget: updates.can_edit_budget }),
+    ...(updates.can_add_transactions !== undefined && { can_add_transactions: updates.can_add_transactions }),
+    ...(updates.requires_approval !== undefined && { requires_approval: updates.requires_approval }),
+    ...(updates.display_name && { display_name: updates.display_name })
+  };
+
+  if (Object.keys(allowedUpdates).length === 0) {
+    throw new Error('No valid updates provided');
+  }
+
+  const { data, error } = await supabase
+    .from('household_members')
+    .update(allowedUpdates)
+    .eq('id', memberId)
+    .eq('household_id', householdInfo.household_id)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return data;
+}
+
+/**
  * Bills Management Functions
  */
 

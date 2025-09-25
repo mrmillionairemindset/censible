@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, UserPlus, Settings, Shield, DollarSign, Edit3, Trash2, Crown, Mail, UserCheck, UserX, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { getHouseholdMembers, getHouseholdInvitations, HouseholdMember } from '../lib/auth-utils';
+import { getHouseholdMembers, getHouseholdInvitations, removeHouseholdMember, updateHouseholdMember, HouseholdMember } from '../lib/auth-utils';
 import HouseholdManager from '../components/Household/HouseholdManager';
 import JoinHousehold from '../components/Household/JoinHousehold';
 import toast from 'react-hot-toast';
@@ -120,15 +120,37 @@ const HouseholdPage: React.FC = () => {
     }
   };
 
-  const handleRemoveMember = (memberId: string) => {
-    // In real app, this would remove the member from the household
-    console.log('Removing member:', memberId);
+  const handleRemoveMember = async (memberId: string) => {
+    if (!window.confirm('Are you sure you want to remove this member from the household?')) {
+      return;
+    }
+
+    try {
+      await removeHouseholdMember(memberId);
+      toast.success('Member removed successfully');
+
+      // Refresh the members list
+      const updatedMembers = await getHouseholdMembers();
+      setHouseholdMembers(updatedMembers);
+    } catch (error) {
+      console.error('Error removing member:', error);
+      toast.error(`Failed to remove member: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
-  const handleUpdateMemberPermissions = (memberId: string, updates: any) => {
-    // In real app, this would update member permissions
-    console.log('Updating member permissions:', memberId, updates);
-    setShowEditMember(null);
+  const handleUpdateMemberPermissions = async (memberId: string, updates: Partial<HouseholdMember>) => {
+    try {
+      await updateHouseholdMember(memberId, updates);
+      toast.success('Member permissions updated successfully');
+
+      // Refresh the members list
+      const updatedMembers = await getHouseholdMembers();
+      setHouseholdMembers(updatedMembers);
+      setShowEditMember(null);
+    } catch (error) {
+      console.error('Error updating member permissions:', error);
+      toast.error(`Failed to update permissions: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
   const renderMembersTab = () => (
