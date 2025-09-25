@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { DollarSign, TrendingUp, TrendingDown, Users, Calendar, AlertTriangle, Plus, Settings } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useBudget } from '../contexts/BudgetContextSupabase';
-import { CategoryLabels, CoreCategories } from '../types';
+import { CategoryLabels, CoreCategories } from '../types/index';
 import { ensureCoreCategories } from '../utils/ensureCoreCategories';
 
 interface StatCard {

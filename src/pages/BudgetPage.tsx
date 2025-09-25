@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Plus, Wallet, PieChart, Users, Tag, UserPlus, Trash2, Edit3 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useBudget } from '../contexts/BudgetContextSupabase';
-import { CategoryType, CategoryColors, CategoryLabels, IncomeSource, BudgetCategory, CategoryIcons, CoreCategories } from '../types';
+import { CategoryType, CategoryColors, CategoryLabels, IncomeSource, BudgetCategory, CategoryIcons, CoreCategories } from '../types/index';
 import CategorySelect from '../components/UI/CategorySelect';
 
 // Using types from the global types file

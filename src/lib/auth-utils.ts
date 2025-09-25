@@ -442,7 +442,7 @@ export async function getHouseholdMembers(): Promise<HouseholdMember[]> {
       can_add_transactions,
       requires_approval,
       display_name,
-      profiles:user_id (
+      profiles (
         username,
         email,
         avatar_url
@@ -454,23 +454,27 @@ export async function getHouseholdMembers(): Promise<HouseholdMember[]> {
 
   if (error) throw error;
 
-  return data?.map((member: any) => ({
-    id: member.id,
-    user_id: member.user_id,
-    username: member.profiles?.username || 'unknown',
-    display_name: member.display_name || member.profiles?.username || 'Unknown User',
-    email: member.profiles?.email || '',
-    role: member.role,
-    member_type: member.member_type || 'adult',
-    joined_at: member.joined_at,
-    monthly_allowance: member.monthly_allowance || 0,
-    allowance_balance: member.allowance_balance || 0,
-    monthly_spending_limit: member.monthly_spending_limit,
-    can_edit_budget: member.can_edit_budget || false,
-    can_add_transactions: member.can_add_transactions || false,
-    requires_approval: member.requires_approval || false,
-    avatar_url: member.profiles?.avatar_url
-  })) || [];
+  return data?.map((member: any) => {
+    // profiles is a single object, not an array
+    const profile = member.profiles;
+    return {
+      id: member.id,
+      user_id: member.user_id,
+      username: profile?.username || 'unknown',
+      display_name: member.display_name || profile?.username || 'Unknown User',
+      email: profile?.email || '',
+      role: member.role,
+      member_type: member.member_type || 'adult',
+      joined_at: member.joined_at,
+      monthly_allowance: member.monthly_allowance || 0,
+      allowance_balance: member.allowance_balance || 0,
+      monthly_spending_limit: member.monthly_spending_limit,
+      can_edit_budget: member.can_edit_budget || false,
+      can_add_transactions: member.can_add_transactions || false,
+      requires_approval: member.requires_approval || false,
+      avatar_url: profile?.avatar_url
+    };
+  }) || [];
 }
 
 /**
@@ -1267,4 +1271,161 @@ export async function getReportSummary(period: string = 'month') {
     savingsRate,
     familyMembers: members?.length || 0
   };
+}
+
+// =============================================
+// TRANSACTION MANAGEMENT
+// =============================================
+
+export interface Transaction {
+  id: string;
+  household_id: string;
+  user_id: string;
+  member_id?: string;
+  period_id?: string;
+  category: string;
+  amount: number;
+  description?: string;
+  merchant?: string;
+  location?: string;
+  transaction_date: string;
+  expense_type: 'shared' | 'personal' | 'allowance';
+  approval_status: 'pending' | 'approved' | 'rejected';
+  approved_by?: string;
+  approved_at?: string;
+  payment_method?: string;
+  receipt_url?: string;
+  created_by: string;
+  created_at: string;
+  modified_by?: string;
+  modified_at?: string;
+}
+
+/**
+ * Get all transactions for the current household
+ */
+export async function getTransactions(): Promise<Transaction[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const householdInfo = await getUserHousehold();
+  if (!householdInfo.household_id) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from('transactions')
+    .select(`
+      *,
+      created_by_profile:profiles!created_by(display_name, username),
+      member_profile:profiles!member_id(display_name, username)
+    `)
+    .eq('household_id', householdInfo.household_id)
+    .order('transaction_date', { ascending: false })
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+
+  return data || [];
+}
+
+/**
+ * Add a new transaction
+ */
+export async function addTransaction(transaction: {
+  member_id: string;
+  category: string;
+  amount: number;
+  description: string;
+  merchant?: string;
+  location?: string;
+  expense_type: 'shared' | 'personal' | 'allowance';
+  payment_method?: string;
+  receipt_url?: string;
+}): Promise<Transaction> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const householdInfo = await getUserHousehold();
+  if (!householdInfo.household_id) {
+    throw new Error('No household found');
+  }
+
+  // Get current budget period
+  const { data: currentPeriod } = await supabase
+    .from('budget_periods')
+    .select('id')
+    .eq('household_id', householdInfo.household_id)
+    .gte('end_date', new Date().toISOString().split('T')[0])
+    .lte('start_date', new Date().toISOString().split('T')[0])
+    .single();
+
+  const newTransaction = {
+    household_id: householdInfo.household_id,
+    user_id: user.id,
+    member_id: transaction.member_id,
+    period_id: currentPeriod?.id || null,
+    category: transaction.category,
+    amount: transaction.amount,
+    description: transaction.description,
+    merchant: transaction.merchant,
+    location: transaction.location,
+    transaction_date: new Date().toISOString().split('T')[0],
+    expense_type: transaction.expense_type,
+    approval_status: transaction.expense_type === 'allowance' ? 'pending' : 'approved',
+    payment_method: transaction.payment_method,
+    receipt_url: transaction.receipt_url,
+    created_by: user.id
+  };
+
+  const { data, error } = await supabase
+    .from('transactions')
+    .insert([newTransaction])
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return data;
+}
+
+/**
+ * Update transaction approval status
+ */
+export async function updateTransactionApproval(
+  transactionId: string,
+  status: 'approved' | 'rejected'
+): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const updates: any = {
+    approval_status: status,
+    approved_by: user.id,
+    approved_at: new Date().toISOString(),
+    modified_by: user.id,
+    modified_at: new Date().toISOString()
+  };
+
+  const { error } = await supabase
+    .from('transactions')
+    .update(updates)
+    .eq('id', transactionId);
+
+  if (error) throw error;
+}
+
+/**
+ * Delete a transaction
+ */
+export async function deleteTransaction(transactionId: string): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { error } = await supabase
+    .from('transactions')
+    .delete()
+    .eq('id', transactionId);
+
+  if (error) throw error;
 }
