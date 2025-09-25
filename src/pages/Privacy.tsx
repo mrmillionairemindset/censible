@@ -23,7 +23,7 @@ const Privacy: React.FC = () => {
             Your privacy is important to us. This policy explains how we collect, use, and protect your information.
           </p>
           <p className="text-sm text-gray-500 mt-4">
-            <strong>Effective Date:</strong> January 2024
+            <strong>Effective Date:</strong> January 2025
           </p>
         </div>
 
@@ -186,10 +186,6 @@ const Privacy: React.FC = () => {
           </section>
         </div>
 
-        {/* Footer */}
-        <div className="text-center mt-12 text-gray-500 text-sm">
-          <p>© 2024 Centsible. All rights reserved.</p>
-        </div>
       </div>
     </div>
   );
