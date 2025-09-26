@@ -88,6 +88,11 @@ export async function createCustomerPortalSession(returnUrl: string) {
     throw new Error('User does not have a household subscription');
   }
 
+  // Check if user has Stripe customer ID (required for portal)
+  if (!household.stripe_customer_id && household.subscription_status === 'trialing') {
+    throw new Error('Your free trial hasn\'t been activated through Stripe yet. Since you\'re on a free trial without payment information, you can simply continue using the free version without any charges.');
+  }
+
   const response = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/create-portal-session`, {
     method: 'POST',
     headers: {
@@ -102,6 +107,8 @@ export async function createCustomerPortalSession(returnUrl: string) {
   });
 
   if (!response.ok) {
+    const errorData = await response.text();
+    console.error('Portal session creation failed:', errorData);
     throw new Error('Failed to create portal session');
   }
 

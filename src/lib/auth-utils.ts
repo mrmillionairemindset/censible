@@ -376,8 +376,8 @@ export async function createHousehold(householdName: string) {
     .insert({
       household_name: householdName,
       created_by: user.id,
-      subscription_status: 'trialing', // Start with trial
-      plan_type: 'premium_household'
+      subscription_status: 'free', // Start with free account, not trial
+      plan_type: 'free' // Free plan initially
     })
     .select()
     .single();
