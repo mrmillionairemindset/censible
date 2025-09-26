@@ -19,12 +19,15 @@ export interface FeatureLimits {
 
 /**
  * Get feature limits based on subscription status
+ * Premium features only for: trialing, active, past_due WITH stripe_customer_id
  */
 export async function getFeatureLimits(): Promise<FeatureLimits> {
   const household = await getUserHousehold();
 
-  const isPremium = household.subscription_status === 'active' ||
-                    household.subscription_status === 'trialing';
+  // Must have Stripe customer ID for premium access
+  const hasStripeCustomer = !!(household.stripe_customer_id && household.stripe_customer_id.length > 0);
+  const validPremiumStatus = ['active', 'trialing', 'past_due'].includes(household.subscription_status || '');
+  const isPremium = validPremiumStatus && hasStripeCustomer;
 
   if (isPremium) {
     return {

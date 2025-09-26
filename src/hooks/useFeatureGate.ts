@@ -46,10 +46,15 @@ export function useFeatureGate() {
 
   /**
    * Check if subscription is premium
+   * Premium features only for: trialing, active, past_due WITH stripe_customer_id
    */
   const isPremium = (): boolean => {
-    return household?.subscription_status === 'active' ||
-           household?.subscription_status === 'trialing';
+    if (!household) return false;
+
+    const hasStripeCustomer = !!(household.stripe_customer_id && household.stripe_customer_id.length > 0);
+    const validPremiumStatus = ['active', 'trialing', 'past_due'].includes(household.subscription_status || '');
+
+    return validPremiumStatus && hasStripeCustomer;
   };
 
   /**

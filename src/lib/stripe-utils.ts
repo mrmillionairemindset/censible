@@ -142,6 +142,7 @@ export async function getSubscriptionStatus() {
 
 /**
  * Check if user has access to premium features
+ * Premium features only for: trialing, active, past_due WITH stripe_customer_id
  */
 export async function hasPremiumAccess(): Promise<boolean> {
   const household = await getUserHousehold();
@@ -150,7 +151,11 @@ export async function hasPremiumAccess(): Promise<boolean> {
     return false;
   }
 
-  return household.subscription_status === 'active' || household.subscription_status === 'trialing';
+  // Must have Stripe customer ID for premium access (except past_due grace period)
+  const hasStripeCustomer = !!(household.stripe_customer_id && household.stripe_customer_id.length > 0);
+  const validPremiumStatus = ['active', 'trialing', 'past_due'].includes(household.subscription_status || '');
+
+  return validPremiumStatus && hasStripeCustomer;
 }
 
 /**

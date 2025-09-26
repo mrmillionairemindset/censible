@@ -64,7 +64,10 @@ const SettingsHome: React.FC = () => {
     }
   ];
 
-  const isPremium = household?.subscription_status === 'active' || household?.subscription_status === 'trialing';
+  // Premium features only for: trialing, active, past_due WITH stripe_customer_id
+  const hasStripeCustomer = household?.stripe_customer_id && household?.stripe_customer_id.length > 0;
+  const validPremiumStatus = ['active', 'trialing', 'past_due'].includes(household?.subscription_status || '');
+  const isPremium = validPremiumStatus && hasStripeCustomer;
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">

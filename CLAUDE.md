@@ -161,6 +161,36 @@ subscription_status:
 - "Skip trial" direct purchase option
 - Better downgrade flow with data handling
 
+### **RECOMMENDED SUBSCRIPTION POLICIES**
+
+#### **Grace Period Handling:**
+- **Trial setup fails**: 3 days to fix payment method (no feature access until fixed)
+- **Payment fails (active subscriber)**: 7 days full-access grace → then restricted mode until payment succeeds
+
+#### **Multiple Trials Policy:**
+- **One trial per email address (ever)** ✅
+- **Anti-abuse**: Lock by payment-method fingerprint (same card = no new trial, even with different email)
+- **Optional cooldown switch** for policy adjustments
+
+#### **Downgrade Data Handling:**
+- **Keep all data; restrict access** ✅
+- **Read-only where applicable**, block premium actions that exceed free limits
+- **Never auto-delete**; add admin purge tool for compliance requests only
+
+#### **Re-upgrade Path:**
+- **Cancelled users**: No trial restarts if trial was already used
+- **They can re-subscribe paid anytime** (resume full access instantly)
+
+#### **Status-Feature Alignment:**
+```typescript
+// Premium features only for:
+hasPremiumFeatures = ['trialing', 'active', 'past_due'].includes(status) && stripe_customer_id
+
+// Free features for:
+freeFeatures = ['free', 'cancelled', 'expired'].includes(status) ||
+               (status === 'trialing' && !stripe_customer_id)
+```
+
 ## 🎯 Next Steps
 1. ✅ COMPLETED - Migration executed successfully
 2. ✅ COMPLETED - TypeScript compilation errors fixed

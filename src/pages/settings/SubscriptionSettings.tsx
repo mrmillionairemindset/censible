@@ -35,11 +35,16 @@ const SubscriptionSettings: React.FC = () => {
           const members = await getHouseholdMembers();
           const stats = await getHouseholdStats(household.household_id);
 
+          // Premium features only for: trialing, active, past_due WITH stripe_customer_id
+          const hasStripeCustomer = household.stripe_customer_id && household.stripe_customer_id.length > 0;
+          const validPremiumStatus = ['active', 'trialing', 'past_due'].includes(household.subscription_status || '');
+          const hasPremiumLimits = validPremiumStatus && hasStripeCustomer;
+
           setUsageStats({
             memberCount: members.length,
             savingsGoalCount: stats.savingsGoalCount || 0,
-            maxMembers: household.subscription_status === 'active' || household.subscription_status === 'trialing' ? 10 : 4,
-            maxSavingsGoals: household.subscription_status === 'active' || household.subscription_status === 'trialing' ? 20 : 3
+            maxMembers: hasPremiumLimits ? 10 : 4,
+            maxSavingsGoals: hasPremiumLimits ? 20 : 3
           });
         } catch (error) {
           console.error('Error loading usage stats:', error);
