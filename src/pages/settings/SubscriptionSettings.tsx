@@ -78,6 +78,11 @@ const SubscriptionSettings: React.FC = () => {
   };
 
   const getStatusColor = (status: string) => {
+    // Legacy trial users without Stripe should show as Free
+    if (status === 'trialing' && !household?.stripe_customer_id) {
+      return 'bg-gray-100 text-gray-800';
+    }
+
     switch (status) {
       case 'active':
         return 'bg-green-100 text-green-800';
@@ -93,6 +98,11 @@ const SubscriptionSettings: React.FC = () => {
   };
 
   const getStatusText = (status: string) => {
+    // Legacy trial users without Stripe should show as Free
+    if (status === 'trialing' && !household?.stripe_customer_id) {
+      return 'Free';
+    }
+
     switch (status) {
       case 'active':
         return '✓ Active';
@@ -160,17 +170,30 @@ const SubscriptionSettings: React.FC = () => {
               </span>
             </div>
 
-            {/* Trial Notice */}
-            {household?.subscription_status === 'trialing' && (
+            {/* Trial Notice - Only show for actual Stripe trials */}
+            {household?.subscription_status === 'trialing' && household?.stripe_customer_id && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                 <div className="flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
                   <div>
                     <h4 className="font-medium text-blue-900">Trial Period Active</h4>
                     <p className="text-sm text-blue-700 mt-1">
-                      {household?.stripe_customer_id ?
-                        "Your trial will convert to a paid subscription automatically. Click 'Manage Trial' above to cancel anytime before the trial ends." :
-                        "You're enjoying premium features for free! No credit card on file, so you won't be charged. To continue with premium features after the trial, upgrade above."}
+                      Your trial will convert to a paid subscription automatically. Click 'Manage Trial' above to cancel anytime before the trial ends.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Legacy Trial Users (shouldn't exist in proper flow) */}
+            {household?.subscription_status === 'trialing' && !household?.stripe_customer_id && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-yellow-900">Account Status Issue</h4>
+                    <p className="text-sm text-yellow-700 mt-1">
+                      Your account status needs to be corrected. You're currently on the free plan. To start a 14-day trial with premium features, please click 'Start Free Trial' above.
                     </p>
                   </div>
                 </div>
@@ -210,7 +233,7 @@ const SubscriptionSettings: React.FC = () => {
                   className="flex items-center gap-2 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
                 >
                   <Crown className="w-4 h-4" />
-                  {loading ? 'Loading...' : isTrialWithoutStripe ? 'Activate Premium Trial' : 'Upgrade to Premium'}
+                  {loading ? 'Loading...' : isTrialWithoutStripe ? 'Start Free Trial' : 'Upgrade to Premium'}
                 </button>
               )}
             </div>

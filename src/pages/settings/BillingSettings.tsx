@@ -97,16 +97,29 @@ const BillingSettings: React.FC = () => {
             </div>
 
             {/* Billing Status Messages */}
-            {household?.subscription_status === 'trialing' && (
+            {household?.subscription_status === 'trialing' && household?.stripe_customer_id && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                 <div className="flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
                   <div>
                     <h4 className="font-medium text-blue-900">Free Trial Active</h4>
                     <p className="text-sm text-blue-700 mt-1">
-                      {household?.stripe_customer_id ?
-                        "Your trial includes all premium features. Click 'Manage Trial' above to cancel anytime before the trial ends to avoid charges." :
-                        "You're enjoying premium features for free! No credit card on file, so you won't be charged."}
+                      Your trial includes all premium features. Click 'Manage Trial' above to cancel anytime before the trial ends to avoid charges.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Legacy Trial Users */}
+            {household?.subscription_status === 'trialing' && !household?.stripe_customer_id && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-yellow-900">Account Status Issue</h4>
+                    <p className="text-sm text-yellow-700 mt-1">
+                      Your account status needs to be corrected. You're currently on the free plan. Visit the subscription page to start a proper trial.
                     </p>
                   </div>
                 </div>
