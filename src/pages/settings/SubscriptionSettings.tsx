@@ -108,7 +108,9 @@ const SubscriptionSettings: React.FC = () => {
   };
 
   const isPremium = hasAccess && (household?.subscription_status === 'active' || household?.subscription_status === 'trialing');
-  const hasStripeSubscription = isPremium && (household?.stripe_customer_id || household?.stripe_subscription_id);
+  // During trial, users should be able to manage (cancel) even without stripe IDs being set yet
+  const hasStripeSubscription = household?.subscription_status === 'trialing' ||
+    (isPremium && (household?.stripe_customer_id || household?.stripe_subscription_id));
   const plan = SUBSCRIPTION_PLANS.premium_household;
 
   return (
@@ -165,7 +167,7 @@ const SubscriptionSettings: React.FC = () => {
                     <h4 className="font-medium text-blue-900">Trial Period Active</h4>
                     <p className="text-sm text-blue-700 mt-1">
                       Your trial will convert to a paid subscription automatically.
-                      You can cancel anytime before the trial ends.
+                      Click "Manage Trial" above to cancel anytime before the trial ends.
                     </p>
                   </div>
                 </div>
@@ -196,7 +198,7 @@ const SubscriptionSettings: React.FC = () => {
                   className="flex items-center gap-2 px-4 py-2 bg-[#27AE60] text-white rounded-lg hover:bg-[#219A52] disabled:opacity-50 transition-colors"
                 >
                   <CreditCard className="w-4 h-4" />
-                  {loading ? 'Loading...' : 'Manage Billing'}
+                  {loading ? 'Loading...' : household?.subscription_status === 'trialing' ? 'Manage Trial' : 'Manage Billing'}
                 </button>
               ) : (
                 <button

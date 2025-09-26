@@ -18,7 +18,7 @@ const About: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm p-8 mb-8">
           <div className="flex items-center gap-4 mb-6">
             <div className="w-16 h-16 bg-[#27AE60] bg-opacity-10 rounded-lg flex items-center justify-center">
-              <Heart className="w-8 h-8 text-[#27AE60]" />
+              <img src="/favicon.png" alt="Centsible Logo" className="w-12 h-12" />
             </div>
             <div>
               <h1 className="text-4xl font-bold text-gray-900">About Centsible</h1>

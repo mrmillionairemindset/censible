@@ -3,6 +3,7 @@
 ## 🔥 ALWAYS CHECK FIRST
 **Before making ANY feature/permission decisions, ALWAYS read:**
 - `SUBSCRIPTION_TIERS.md` - Definitive feature allocation and limits
+- **Subscription Flow** section below for trial/payment logic
 
 ## 🚨 CRITICAL RULES
 - **NEVER assume libraries exist** - Always check package.json or imports first
@@ -74,6 +75,91 @@
 - ✅ Mock data audit COMPLETED (50+ items identified)
 - ✅ Household member loading FIXED (Supabase relationship error resolved)
 - ⚠️ ALL PAGES USE MOCK DATA - Critical UI elements need live database connections
+- ⚠️ SUBSCRIPTION FLOW NEEDS REFACTOR - Users can't cancel trials, flow unclear
+
+## 🎯 SUBSCRIPTION FLOW GAME PLAN
+
+### **Ideal User Journey:**
+
+#### **1. Initial Signup (Free Account)**
+- User signs up with email/password only
+- **NO credit card required**
+- Starts with `subscription_status: 'free'`
+- Gets access to:
+  - 4 household members (owner + 3 read-only)
+  - 3 savings goals
+  - Basic budgeting features
+  - No OCR receipt scanning
+- Can use free version indefinitely
+
+#### **2. Trial Activation (User-Initiated)**
+When ready, user can start 14-day trial:
+- Click "Start Free Trial" button
+- Enter credit card via Stripe Checkout
+- `subscription_status` changes to `'trialing'`
+- Unlocks all Premium features:
+  - 10 household members
+  - 20 savings goals
+  - OCR receipt scanning
+  - Advanced reports
+- Shows trial countdown/end date
+- **"Manage Subscription"** button appears (for cancellation via Stripe Portal)
+
+#### **3. Trial Outcomes:**
+
+**A. Trial Converts (Automatic)**
+- After 14 days, if not cancelled
+- `subscription_status` → `'active'`
+- Card charged $9.99/month
+- Keeps all premium features
+
+**B. Trial Cancelled (User Action)**
+- User cancels via Stripe Portal
+- `subscription_status` → `'free'`
+- Reverts to free tier limits
+- Card removed, no charges
+- Can potentially start new trial later
+
+**C. Skip Trial (Direct Purchase)**
+- User clicks "Subscribe Now"
+- Skips trial, goes straight to paid
+- `subscription_status` → `'active'`
+- Immediate card charge
+- All premium features active
+
+#### **4. Subscription Status Values:**
+```typescript
+subscription_status:
+- 'free'      // Never had trial or subscription
+- 'trialing'  // In 14-day trial period
+- 'active'    // Paying customer
+- 'past_due'  // Payment failed, grace period
+- 'cancelled' // Was paying, now cancelled (reverts to free)
+- 'expired'   // Trial ended without converting
+```
+
+### **Current Implementation Issues:**
+- ❌ New users start as 'trialing' without credit card
+- ❌ No way to cancel trial (button shows "Upgrade" not "Manage")
+- ❌ No distinction between free users and trial users
+- ❌ `hasStripeSubscription` check fails for trial users
+
+### **Implementation Priority:**
+
+**Phase 1: Fix Current Trial Users (URGENT)**
+- Fix `hasStripeSubscription` to include trial status
+- Show "Manage Subscription" button for trial users
+- Allow cancellation during trial via Stripe Portal
+
+**Phase 2: Separate Free from Trial**
+- New users start as 'free' not 'trialing'
+- Add explicit "Start Trial" flow with Stripe Checkout
+- Require credit card for trial activation
+
+**Phase 3: Enhanced Management**
+- Trial countdown/warnings (3 days, 1 day)
+- "Skip trial" direct purchase option
+- Better downgrade flow with data handling
 
 ## 🎯 Next Steps
 1. ✅ COMPLETED - Migration executed successfully

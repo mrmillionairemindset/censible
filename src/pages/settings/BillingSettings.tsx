@@ -32,7 +32,9 @@ const BillingSettings: React.FC = () => {
   };
 
   const isPremium = hasAccess && (household?.subscription_status === 'active' || household?.subscription_status === 'trialing');
-  const hasStripeSubscription = isPremium && (household?.stripe_customer_id || household?.stripe_subscription_id);
+  // During trial, users should be able to manage (cancel) even without stripe IDs being set yet
+  const hasStripeSubscription = household?.subscription_status === 'trialing' ||
+    (isPremium && (household?.stripe_customer_id || household?.stripe_subscription_id));
   const plan = SUBSCRIPTION_PLANS.premium_household;
 
   return (
@@ -101,7 +103,7 @@ const BillingSettings: React.FC = () => {
                   <div>
                     <h4 className="font-medium text-blue-900">Free Trial Active</h4>
                     <p className="text-sm text-blue-700 mt-1">
-                      Your trial includes all premium features. You can cancel anytime before the trial ends to avoid charges.
+                      Your trial includes all premium features. Click "Manage Trial" above to cancel anytime before the trial ends to avoid charges.
                     </p>
                   </div>
                 </div>
@@ -145,7 +147,7 @@ const BillingSettings: React.FC = () => {
                   className="flex items-center gap-2 px-4 py-2 bg-[#27AE60] text-white rounded-lg hover:bg-[#219A52] disabled:opacity-50 transition-colors"
                 >
                   <ExternalLink className="w-4 h-4" />
-                  {loading ? 'Loading...' : 'Manage in Stripe Portal'}
+                  {loading ? 'Loading...' : household?.subscription_status === 'trialing' ? 'Manage Trial (Cancel anytime)' : 'Manage in Stripe Portal'}
                 </button>
               </div>
             )}

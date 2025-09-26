@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
 import { migrateLocalDataToSupabase } from '../utils/dataMigration';
@@ -46,7 +46,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [household, setHousehold] = useState<HouseholdInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const hasShownLoginMessage = useRef(false);
+  const isInitialLoadRef = useRef(true);
 
   // Refresh user profile
   const refreshProfile = async () => {
@@ -141,7 +142,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setError(null);
       } finally {
         setLoading(false);
-        setIsInitialLoad(false);
+        isInitialLoadRef.current = false;
       }
     };
 
@@ -162,9 +163,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         switch (event) {
           case 'SIGNED_IN':
             setError(null);
+            console.log('🔍 SIGNED_IN event:', {
+              isInitialLoadRef: isInitialLoadRef.current,
+              hasShownLoginMessage: hasShownLoginMessage.current,
+              willShowToast: !isInitialLoadRef.current && !hasShownLoginMessage.current
+            });
             // Only show success message for actual sign-ins, not session restoration
-            if (!isInitialLoad) {
+            if (!isInitialLoadRef.current && !hasShownLoginMessage.current) {
+              console.log('🎉 Showing login success toast');
               toast.success('Successfully signed in!');
+              hasShownLoginMessage.current = true;
             }
             // Trigger data migration after successful sign in
             if (session?.user) {
@@ -175,6 +183,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             break;
           case 'SIGNED_OUT':
             setError(null);
+            hasShownLoginMessage.current = false; // Reset flag for next login
             toast.success('Successfully signed out!');
             break;
           case 'TOKEN_REFRESHED':
@@ -192,7 +201,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 
     return () => subscription.unsubscribe();
-  }, [isInitialLoad]);
+  }, []); // Remove isInitialLoad from dependencies to prevent re-creating the listener
 
   const signUp = async (username: string, email: string, password: string, displayName?: string): Promise<boolean> => {
     let retryCount = 0;
