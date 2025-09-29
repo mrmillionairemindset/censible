@@ -123,9 +123,10 @@ const SubscriptionSettings: React.FC = () => {
   };
 
   const isPremium = hasAccess && (household?.subscription_status === 'active' || household?.subscription_status === 'trialing');
-  // Only show manage button if user has actual Stripe subscription
+  // Only show manage button if user has actual Stripe subscription (including trials)
   const hasStripeSubscription = (household?.stripe_customer_id || household?.stripe_subscription_id) &&
-    (household?.subscription_status === 'active' || household?.subscription_status === 'past_due');
+    (household?.subscription_status === 'active' || household?.subscription_status === 'past_due' ||
+     (household?.subscription_status === 'trialing' && !household?.subscription_canceled_at));
   // Trial users without Stripe should see upgrade button
   const isTrialWithoutStripe = household?.subscription_status === 'trialing' && !household?.stripe_customer_id;
   const plan = SUBSCRIPTION_PLANS.premium_household;
@@ -301,7 +302,7 @@ const SubscriptionSettings: React.FC = () => {
                   className="flex items-center gap-2 px-4 py-2 bg-[#27AE60] text-white rounded-lg hover:bg-[#219A52] disabled:opacity-50 transition-colors"
                 >
                   <CreditCard className="w-4 h-4" />
-                  {loading ? 'Loading...' : 'Manage Billing'}
+                  {loading ? 'Loading...' : household?.subscription_status === 'trialing' ? 'Manage Trial' : 'Manage Billing'}
                 </button>
               ) : (
                 <button
