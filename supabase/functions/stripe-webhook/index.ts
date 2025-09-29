@@ -55,14 +55,44 @@ Deno.serve(async (req) => {
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription
 
-        await supabaseAdmin.rpc('update_household_subscription', {
-          stripe_customer_id_param: subscription.customer as string,
-          subscription_status_param: subscription.status,
-          stripe_subscription_id_param: subscription.id,
-          current_period_start_param: new Date(subscription.current_period_start * 1000).toISOString(),
-          current_period_end_param: new Date(subscription.current_period_end * 1000).toISOString(),
-          canceled_at_param: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null
-        })
+        // Update household subscription with billing period tracking
+        const updateData: any = {
+          subscription_status: subscription.status,
+          stripe_subscription_id: subscription.id,
+          subscription_current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+          subscription_current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+          updated_at: new Date().toISOString()
+        };
+
+        // Handle trial period
+        if (subscription.trial_end) {
+          updateData.trial_ends_at = new Date(subscription.trial_end * 1000).toISOString();
+        }
+
+        // Handle cancellation tracking
+        if (subscription.canceled_at) {
+          updateData.subscription_canceled_at = new Date(subscription.canceled_at * 1000).toISOString();
+        }
+
+        if (subscription.cancel_at_period_end) {
+          updateData.cancel_at_period_end = true;
+          updateData.access_ends_at = updateData.subscription_current_period_end;
+        } else {
+          updateData.cancel_at_period_end = false;
+          updateData.access_ends_at = null;
+        }
+
+        // Map subscription tier
+        if (subscription.status === 'trialing' || subscription.status === 'active') {
+          updateData.subscription_tier = 'premium';
+        } else if (subscription.status === 'canceled' || subscription.status === 'cancelled') {
+          updateData.subscription_tier = 'free';
+        }
+
+        await supabaseAdmin
+          .from('households')
+          .update(updateData)
+          .eq('stripe_customer_id', subscription.customer as string)
 
         console.log(`Updated household subscription for customer: ${subscription.customer}`)
         break
@@ -75,14 +105,27 @@ Deno.serve(async (req) => {
           // Get the full subscription object
           const subscription = await stripe.subscriptions.retrieve(session.subscription as string)
 
-          await supabaseAdmin.rpc('update_household_subscription', {
-            stripe_customer_id_param: session.customer as string,
-            subscription_status_param: subscription.status,
-            stripe_subscription_id_param: subscription.id,
-            current_period_start_param: new Date(subscription.current_period_start * 1000).toISOString(),
-            current_period_end_param: new Date(subscription.current_period_end * 1000).toISOString(),
-            canceled_at_param: null
-          })
+          const updateData: any = {
+            subscription_status: subscription.status,
+            subscription_tier: 'premium',
+            stripe_subscription_id: subscription.id,
+            subscription_current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+            subscription_current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            cancel_at_period_end: false,
+            access_ends_at: null,
+            subscription_canceled_at: null,
+            updated_at: new Date().toISOString()
+          };
+
+          // Handle trial period
+          if (subscription.trial_end) {
+            updateData.trial_ends_at = new Date(subscription.trial_end * 1000).toISOString();
+          }
+
+          await supabaseAdmin
+            .from('households')
+            .update(updateData)
+            .eq('stripe_customer_id', session.customer as string)
 
           console.log(`Checkout completed for customer: ${session.customer}`)
         }

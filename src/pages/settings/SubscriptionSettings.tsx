@@ -175,18 +175,90 @@ const SubscriptionSettings: React.FC = () => {
               </span>
             </div>
 
-            {/* Trial Notice - Only show for actual Stripe trials */}
-            {household?.subscription_status === 'trialing' && household?.stripe_customer_id && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium text-blue-900">Trial Period Active</h4>
-                    <p className="text-sm text-blue-700 mt-1">
-                      Your trial will convert to a paid subscription automatically. Click 'Manage Trial' above to cancel anytime before the trial ends.
-                    </p>
+            {/* Billing Period Information */}
+            {(household?.trial_ends_at || household?.subscription_current_period_end || household?.access_ends_at) && (
+              <div className="space-y-3 mb-4">
+
+                {/* Active Trial Period */}
+                {household?.subscription_status === 'trialing' && household?.stripe_customer_id && !household?.subscription_canceled_at && household?.trial_ends_at && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <Calendar className="w-5 h-5 text-blue-600 mt-0.5" />
+                      <div>
+                        <h4 className="font-medium text-blue-900">Trial Period Active</h4>
+                        <p className="text-sm text-blue-700 mt-1">
+                          Your trial ends on {new Date(household.trial_ends_at).toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}. Your subscription will automatically start after the trial period.
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {/* Cancelled Trial */}
+                {household?.subscription_status === 'trialing' && household?.subscription_canceled_at && household?.access_ends_at && (
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-orange-600 mt-0.5" />
+                      <div>
+                        <h4 className="font-medium text-orange-900">Trial Cancelled - Going Back to Free</h4>
+                        <p className="text-sm text-orange-700 mt-1">
+                          Your trial was cancelled and premium access will end on {new Date(household.access_ends_at).toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}. After this date, your account will revert to the free plan.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Active Subscription Billing Period */}
+                {household?.subscription_status === 'active' && !household?.cancel_at_period_end && household?.subscription_current_period_end && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <Calendar className="w-5 h-5 text-green-600 mt-0.5" />
+                      <div>
+                        <h4 className="font-medium text-green-900">Active Subscription</h4>
+                        <p className="text-sm text-green-700 mt-1">
+                          Your next billing date is {new Date(household.subscription_current_period_end).toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}. Your subscription will automatically renew.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Cancelled Active Subscription */}
+                {household?.subscription_status === 'active' && household?.cancel_at_period_end && household?.access_ends_at && (
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-orange-600 mt-0.5" />
+                      <div>
+                        <h4 className="font-medium text-orange-900">Subscription Cancelled</h4>
+                        <p className="text-sm text-orange-700 mt-1">
+                          Your subscription is set to cancel and premium access will end on {new Date(household.access_ends_at).toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}. You can reactivate your subscription anytime before this date.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
               </div>
             )}
 

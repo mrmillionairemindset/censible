@@ -21,6 +21,12 @@ export interface HouseholdInfo {
   subscription_tier?: string | null;
   stripe_customer_id?: string | null;
   stripe_subscription_id?: string | null;
+  subscription_canceled_at?: string | null;
+  trial_ends_at?: string | null;
+  subscription_current_period_start?: string | null;
+  subscription_current_period_end?: string | null;
+  cancel_at_period_end?: boolean | null;
+  access_ends_at?: string | null;
 }
 
 /**
@@ -276,7 +282,13 @@ export async function getUserHousehold(): Promise<HouseholdInfo> {
       household_id: null,
       household_name: null,
       role: null,
-      subscription_status: null
+      subscription_status: null,
+      subscription_canceled_at: null,
+      trial_ends_at: null,
+      subscription_current_period_start: null,
+      subscription_current_period_end: null,
+      cancel_at_period_end: null,
+      access_ends_at: null
     };
   }
 
@@ -289,16 +301,58 @@ export async function getUserHousehold(): Promise<HouseholdInfo> {
       household_id: null,
       household_name: null,
       role: null,
-      subscription_status: null
+      subscription_status: null,
+      stripe_customer_id: null,
+      stripe_subscription_id: null,
+      subscription_canceled_at: null,
+      trial_ends_at: null,
+      subscription_current_period_start: null,
+      subscription_current_period_end: null,
+      cancel_at_period_end: null,
+      access_ends_at: null
     };
   }
 
   const householdInfo = data[0];
+
+  // Fetch additional billing fields from households table
+  let billingData: any = {};
+  if (householdInfo.household_id) {
+    const { data: household } = await supabase
+      .from('households')
+      .select(`
+        stripe_customer_id,
+        stripe_subscription_id,
+        subscription_canceled_at,
+        trial_ends_at,
+        subscription_current_period_start,
+        subscription_current_period_end,
+        cancel_at_period_end,
+        access_ends_at,
+        subscription_tier
+      `)
+      .eq('id', householdInfo.household_id)
+      .single();
+
+    if (household) {
+      billingData = household;
+    }
+  }
+
   return {
     household_id: householdInfo.household_id,
     household_name: householdInfo.household_name,
     role: householdInfo.role,
-    subscription_status: householdInfo.subscription_status
+    subscription_status: householdInfo.subscription_status,
+    subscription_tier: billingData.subscription_tier || null,
+    stripe_customer_id: billingData.stripe_customer_id || null,
+    stripe_subscription_id: billingData.stripe_subscription_id || null,
+    subscription_canceled_at: billingData.subscription_canceled_at || null,
+    trial_ends_at: billingData.trial_ends_at || null,
+    subscription_current_period_start: billingData.subscription_current_period_start || null,
+    subscription_current_period_end: billingData.subscription_current_period_end || null,
+    cancel_at_period_end: billingData.cancel_at_period_end || null,
+    access_ends_at: billingData.access_ends_at || null
   };
 }
 
